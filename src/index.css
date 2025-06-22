@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Styling untuk Tombol Editor Tiptap yang Aktif */
+.tiptap button.is-active {
+  background-color: #dbeafe; /* Warna biru muda untuk mode terang */
+  font-weight: bold;
+}
+
+/* Styling untuk tombol Tiptap aktif di mode gelap */
+.dark .tiptap button.is-active {
+    background-color: #3b82f6;
+    color: #ffffff;
+}
+
+/* Mengurangi jarak antar paragraf di editor Tiptap */
+.prose p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+/* Mengatur ulang jarak spasi paragraf di dalam editor Tiptap */
+.prose p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
