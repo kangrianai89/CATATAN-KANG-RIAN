@@ -112,24 +112,27 @@ function DashboardPage({ session }) {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-8">
+      {/* BAGIAN HEADER */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold dark:text-white">Dashboard Catatan</h1>
           <p className="text-gray-600 dark:text-gray-400">Login sebagai: {session.user.email}</p>
         </div>
-        <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Logout</button>
+        <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 w-full sm:w-auto">Logout</button>
       </div>
       
+      {/* BAGIAN FORM BUAT CATATAN */}
       <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <form onSubmit={handleCreateNote}>
           <h2 className="text-xl font-semibold mb-2 dark:text-white">Buat Catatan Baru</h2>
-          <div className="flex items-center gap-2">
-            <input type="text" placeholder="Judul Catatan..." className="flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} required/>
-            <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Buat & Edit</button>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <input type="text" placeholder="Judul Catatan..." className="w-full flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} required/>
+            <button type="submit" className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Buat & Edit</button>
           </div>
         </form>
       </div>
       
+      {/* BAGIAN DAFTAR CATATAN */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold dark:text-white">Catatan Anda</h2>
@@ -137,11 +140,9 @@ function DashboardPage({ session }) {
         {loadingNotes ? <p className="dark:text-gray-400">Memuat catatan...</p> : notes.length === 0 ? <p className="dark:text-gray-400">Tidak ada catatan.</p> : (
           <ul className="space-y-4">
             {notes.map((note) => (
-              <li key={note.id} className={`flex justify-between items-center p-4 border rounded-lg shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 ${note.pinned ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700' : 'bg-white dark:bg-gray-800 dark:border-gray-700'}`}>
+              <li key={note.id} className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border rounded-lg shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 ${note.pinned ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700' : 'bg-white dark:bg-gray-800 dark:border-gray-700'}`}>
                 
-                {/* --- PERUBAHAN UTAMA DI SINI --- */}
-                {/* Bagian utama sekarang adalah link yang bisa diklik */}
-                <Link to={`/note/${note.id}`} className="flex-grow min-w-0 mr-4">
+                <Link to={`/note/${note.id}`} className="flex-grow min-w-0 mr-0 sm:mr-4 w-full">
                   <div className="flex items-center gap-2 mb-1">
                     {note.pinned && <PinIcon isPinned={true} />}
                     <h3 className="font-bold text-lg dark:text-white truncate">{note.title}</h3>
@@ -154,8 +155,7 @@ function DashboardPage({ session }) {
                   </div>
                 </Link>
 
-                {/* Tombol-tombol aksi tetap di luar link */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center justify-end gap-2 flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
                   <button onClick={() => handleTogglePin(note.id, note.pinned)} title={note.pinned ? 'Lepas Sematan' : 'Sematkan Catatan'} className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 ${ note.pinned ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500' }`}>
                       <PinIcon isPinned={note.pinned} />
                   </button>
