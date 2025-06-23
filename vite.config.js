@@ -8,11 +8,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Kita mulai dengan manifest yang sangat sederhana
       manifest: {
         name: 'DevStudy Hub',
         short_name: 'DevStudy',
+        description: 'Platform pencatatan modular dan utilitas AI untuk developer.', // <-- DITAMBAHKAN KEMBALI
         theme_color: '#1F2937',
+        background_color: '#F3F4F6', // <-- DITAMBAHKAN KEMBALI
         icons: [
           {
             src: 'pwa-192x192.png',
