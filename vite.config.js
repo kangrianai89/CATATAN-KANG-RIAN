@@ -6,17 +6,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
-    
-    /* NONAKTIFKAN PWA SEMENTARA UNTUK DEBUGGING
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      // Kita mulai dengan manifest yang sangat sederhana
       manifest: {
         name: 'DevStudy Hub',
         short_name: 'DevStudy',
-        description: 'Platform pencatatan modular dan utilitas AI untuk developer.',
-        theme_color: '#1F2937', // Warna gelap sidebar Anda
-        background_color: '#F3F4F6', // Warna terang konten Anda
+        theme_color: '#1F2937',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -27,16 +23,9 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
           }
         ]
       }
     })
-    */
   ],
 })
