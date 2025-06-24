@@ -173,15 +173,19 @@ function NoteDetailPage() {
 
     setIsProcessing(true);
     
+    // --- PROMPT BARU YANG LEBIH DETAIL ---
     const smartPrompt = `
-    Anda adalah asisten editor yang sangat cerdas. Diberikan konten HTML, lakukan dua tugas berikut:
+    Anda adalah seorang analis konten dan editor ahli. Diberikan konten HTML, lakukan dua tugas berikut secara berurutan:
     1.  **Tidy Up (Merapikan):** Analisis dan rapikan seluruh konten HTML agar memiliki alur yang baik, tata bahasa yang benar, dan struktur yang rapi (paragraf <p>, sub-judul <h2>/<h3> jika perlu, penebalan <strong> pada kata kunci). Pertahankan semua konten asli, jangan menghilangkannya.
-    2.  **Summarize (Meringkas):** Setelah merapikan, buat ringkasan dari konten tersebut. Ringkasan harus dalam bentuk poin-poin HTML (menggunakan tag <ul> dan <li>) dan menyoroti ide-ide utama.
+    2.  **Summarize & Analyze (Meringkas & Menganalisis):** Setelah merapikan, buat analisis dan ringkasan mendalam dari konten tersebut.
+        * **Format:** Hasilnya HARUS dalam bentuk poin-poin HTML (menggunakan tag <ul> dan <li>).
+        * **Kuantitas:** Hasilkan **minimal 3 hingga 5 poin** yang paling signifikan.
+        * **Kualitas:** Setiap poin harus berupa kalimat lengkap dan informatif. Jangan hanya mengulang kata, tapi jelaskan **konsep, argumen utama, atau alur kejadian penting** dari teks. Jika ada kesimpulan atau pesan moral, pastikan itu termasuk sebagai poin terakhir.
 
     HASILKAN OUTPUT HANYA DALAM FORMAT JSON YANG VALID dengan struktur berikut:
     {
       "konten_rapi": "Konten HTML yang sudah dirapikan ada di sini...",
-      "ringkasan_poin": "<ul><li>Poin ringkasan pertama.</li><li>Poin ringkasan kedua.</li></ul>"
+      "ringkasan_poin": "<ul><li>Poin ringkasan pertama yang mendalam.</li><li>Poin ringkasan kedua yang informatif.</li><li>Poin ringkasan ketiga yang menangkap kesimpulan.</li></ul>"
     }
 
     Konten HTML untuk diproses:
@@ -208,9 +212,7 @@ function NoteDetailPage() {
       const data = await response.json();
       let rawJsonText = data.candidates[0].content.parts[0].text;
       
-      // --- KODE DEBUGGING DITAMBAHKAN DI SINI ---
       console.log("Respons Mentah dari AI:", rawJsonText);
-      // ------------------------------------------
 
       if (rawJsonText.startsWith('```json')) {
         rawJsonText = rawJsonText.substring(7, rawJsonText.lastIndexOf('```')).trim();
@@ -302,7 +304,6 @@ function NoteDetailPage() {
           </button>
 
           <div className="flex flex-wrap gap-2">
-            {/* --- TOMBOL SUDAH DIPERBARUI --- */}
             <button type="button" onClick={handleSmartProcess} disabled={isProcessing} className="px-6 py-2 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 disabled:bg-gray-400">
                 {isProcessing ? 'Memproses...' : 'Proses & Rangkum AI ✨'}
             </button>
