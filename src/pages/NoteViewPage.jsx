@@ -3,9 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import DOMPurify from 'dompurify';
 
-// Komponen ikon untuk tombol Edit
 const EditIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
     </svg>
@@ -28,7 +27,8 @@ function NoteViewPage() {
 
       if (error) throw error;
       setNote(data);
-    } catch (error)      alert("Gagal memuat catatan: " + error.message);
+    } catch (error) {
+      alert("Gagal memuat catatan: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -43,8 +43,9 @@ function NoteViewPage() {
 
   return (
     <>
-      {/* --- PERUBAHAN UTAMA DI BAGIAN INI --- */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
+      {/* --- PERBAIKAN UTAMA DI BAGIAN INI --- */}
+      <div className="flex flex-col sm:flex-row sm:items-start mb-6 gap-4">
+        {/* Wrapper untuk judul dibuat agar tidak terlalu "rakus" mengambil tempat */}
         <div className="flex-grow">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white break-words">
             {note.title}
@@ -54,9 +55,10 @@ function NoteViewPage() {
             {note.updated_at && ` | Terakhir diubah: ${new Date(note.updated_at).toLocaleString()}`}
           </p>
         </div>
+        {/* Tombol diberi margin kiri otomatis untuk mendorongnya ke kanan */}
         <Link 
             to={`/note/${id}/edit`} 
-            className="flex-shrink-0 w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
+            className="flex-shrink-0 w-full sm:w-auto sm:ml-auto flex items-center justify-center px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
         >
             <EditIcon />
             <span>Edit Catatan</span>
