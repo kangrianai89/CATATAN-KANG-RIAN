@@ -106,13 +106,12 @@ function NoteViewPage() {
       <div className="space-y-8">
         {note.sections && note.sections.map((section, index) => (
           <div key={index} className="border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm overflow-hidden">
-            {/* Judul Bagian dibuat memecah kata jika terlalu panjang */}
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-4 border-b pb-2 dark:border-gray-600 px-6 pt-4 break-words">
               {section.title}
             </h2>
-            {/* PERUBAHAN CSS DI SINI: Ditambahkan overflow-x-auto */}
+            {/* PERUBAHAN CSS DI SINI: Ditambahkan 'break-words' */}
             <div
-              className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto overflow-x-auto px-6 pb-4"
+              className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto overflow-x-auto px-6 pb-4 break-words"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
             />
           </div>
