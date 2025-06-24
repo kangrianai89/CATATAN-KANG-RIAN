@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import DOMPurify from 'dompurify';
 
+// Komponen ikon untuk tombol Edit
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -43,28 +44,28 @@ function NoteViewPage() {
 
   return (
     <>
-      {/* --- PERBAIKAN UTAMA DI BAGIAN INI --- */}
-      <div className="flex flex-col sm:flex-row sm:items-start mb-6 gap-4">
-        {/* Wrapper untuk judul dibuat agar tidak terlalu "rakus" mengambil tempat */}
-        <div className="flex-grow">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white break-words">
-            {note.title}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Dibuat: {new Date(note.created_at).toLocaleString()}
-            {note.updated_at && ` | Terakhir diubah: ${new Date(note.updated_at).toLocaleString()}`}
-          </p>
-        </div>
-        {/* Tombol diberi margin kiri otomatis untuk mendorongnya ke kanan */}
+      {/* --- STRUKTUR BARU SESUAI IDE ANDA --- */}
+      <div className="mb-4">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white break-words">
+          {note.title}
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          Dibuat: {new Date(note.created_at).toLocaleString()}
+          {note.updated_at && ` | Terakhir diubah: ${new Date(note.updated_at).toLocaleString()}`}
+        </p>
+      </div>
+
+      {/* Tombol Edit sekarang ada di barisnya sendiri di bawah judul */}
+      <div className="mb-8">
         <Link 
             to={`/note/${id}/edit`} 
-            className="flex-shrink-0 w-full sm:w-auto sm:ml-auto flex items-center justify-center px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
         >
             <EditIcon />
             <span>Edit Catatan</span>
         </Link>
       </div>
-
+      
       <div className="space-y-8">
         {note.sections && note.sections.map((section, index) => (
           <div key={index} className="p-6 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm">
