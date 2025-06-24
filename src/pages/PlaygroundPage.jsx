@@ -7,18 +7,15 @@ function PlaygroundPage() {
   const [loading, setLoading] = useState(true);
   const [assets, setAssets] = useState([]);
   
-  // State baru untuk pencarian & filter
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState([]);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('');
 
   useEffect(() => {
-    // Memicu fetch ulang saat filter kategori berubah
     fetchAssets(); 
   }, [selectedCategoryFilter]);
 
   useEffect(() => {
-    // Mengambil daftar kategori hanya sekali saat komponen dimuat
     fetchCategories();
   }, []);
 
@@ -26,7 +23,7 @@ function PlaygroundPage() {
     setLoading(true);
     try {
       let query = supabase
-        .from('pages') // Masih menggunakan tabel 'pages' sesuai struktur
+        .from('pages') 
         .select(`
           id,
           title,
@@ -37,7 +34,6 @@ function PlaygroundPage() {
           categories (id, name)
         `);
 
-      // Terapkan filter kategori di sisi server jika ada yang dipilih
       if (selectedCategoryFilter) {
         query = query.eq('category_id', selectedCategoryFilter);
       }
@@ -66,7 +62,44 @@ function PlaygroundPage() {
     }
   };
 
-  // Filter pencarian berdasarkan judul dilakukan di sisi klien
+  // --- FUNGSI BARU UNTUK MENGHAPUS ASET ---
+  const handleDeleteAsset = async (assetToDelete) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus aset "${assetToDelete.title}"? Aksi ini tidak dapat dibatalkan.`)) {
+        try {
+            // Langkah 1: Hapus gambar dari Supabase Storage jika ada
+            if (assetToDelete.image_url) {
+                // Ekstrak path file dari URL lengkap
+                const imagePath = assetToDelete.image_url.substring(assetToDelete.image_url.lastIndexOf('/') + 1);
+                
+                const { error: storageError } = await supabase.storage
+                    .from('asset_images') // Pastikan nama bucket ini benar
+                    .remove([imagePath]);
+                
+                if (storageError) {
+                    // Tampilkan error tapi tetap lanjutkan proses hapus data,
+                    // karena mungkin file sudah terhapus atau ada masalah lain.
+                    console.error("Gagal menghapus gambar dari storage:", storageError.message);
+                }
+            }
+
+            // Langkah 2: Hapus data aset dari database
+            const { error: dbError } = await supabase
+                .from('pages')
+                .delete()
+                .eq('id', assetToDelete.id);
+
+            if (dbError) throw dbError;
+
+            // Langkah 3: Perbarui UI dengan menghapus aset dari state
+            setAssets(prevAssets => prevAssets.filter(asset => asset.id !== assetToDelete.id));
+            alert(`Aset "${assetToDelete.title}" berhasil dihapus.`);
+
+        } catch (error) {
+            alert("Gagal menghapus aset: " + error.message);
+        }
+    }
+  };
+
   const filteredAssets = assets.filter(asset => 
     asset.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -76,14 +109,13 @@ function PlaygroundPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold dark:text-white">Koleksi Aset</h1>
         <Link 
-            to="/asset/new" // Mengarahkan ke halaman detail untuk membuat aset baru
+            to="/asset/new"
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
         >
           + Tambah Aset Baru
         </Link>
       </div>
       
-      {/* UI Pencarian & Filter */}
       <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <div className="flex flex-wrap gap-4 items-center">
             <input 
@@ -128,10 +160,14 @@ function PlaygroundPage() {
                         {asset.categories.name}
                     </span>
                   )}
-                  <div className="mt-auto pt-2">
-                    <Link to={`/asset/${asset.id}`} className="w-full text-center block px-3 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600">
-                      Lihat Detail
+                  {/* --- AREA TOMBOL DIPERBARUI --- */}
+                  <div className="mt-auto pt-2 flex gap-2">
+                    <Link to={`/asset/${asset.id}`} className="flex-grow text-center block px-3 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600">
+                      Detail
                     </Link>
+                    <button onClick={() => handleDeleteAsset(asset)} className="px-3 py-2 bg-red-100 text-red-700 text-sm rounded-md hover:bg-red-200">
+                      Hapus
+                    </button>
                   </div>
                 </div>
               </div>
