@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import DOMPurify from 'dompurify';
 
-// Komponen Ikon
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -17,7 +16,6 @@ const CopyIcon = () => (
         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
     </svg>
 );
-
 
 function NoteViewPage() {
   const { id } = useParams();
@@ -50,19 +48,16 @@ function NoteViewPage() {
   
   const handleCopyNote = () => {
     if (!note) return;
-
     const convertHtmlToText = (html) => {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
         return tempDiv.textContent || tempDiv.innerText || '';
     };
-
     let fullNoteText = `# ${note.title}\n\n`;
     note.sections.forEach(sec => {
         fullNoteText += `## ${sec.title}\n`;
         fullNoteText += `${convertHtmlToText(sec.content)}\n\n`;
     });
-
     navigator.clipboard.writeText(fullNoteText.trim()).then(() => {
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
@@ -109,7 +104,6 @@ function NoteViewPage() {
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-4 border-b pb-2 dark:border-gray-600 px-6 pt-4 break-words">
               {section.title}
             </h2>
-            {/* PERUBAHAN CSS DI SINI: Ditambahkan 'break-words' */}
             <div
               className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto overflow-x-auto px-6 pb-4 break-words"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
