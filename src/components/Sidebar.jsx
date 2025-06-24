@@ -13,28 +13,25 @@ const SunIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height=
 const MoonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
 const WebIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>;
 
-
-function Sidebar({ isOpen, setSidebarOpen }) { // Menerima props dari MainLayout
+function Sidebar({ isOpen, setSidebarOpen }) {
   const { theme, toggleTheme } = useTheme();
   const linkClass = "flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-700 transition-colors";
   const activeLinkClass = "bg-gray-600 font-semibold";
 
-  // Fungsi untuk menutup sidebar saat link diklik (di layar mobile)
   const handleLinkClick = () => {
-    if (window.innerWidth < 768) { // Hanya tutup jika di layar mobile
+    if (window.innerWidth < 768) { 
         setSidebarOpen(false);
     }
   };
 
   return (
-    // Kelas CSS diubah total untuk logika responsif
     <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-800 text-white p-4 flex flex-col transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}>
       <h2 className="text-2xl font-bold mb-8">DevStudy Hub</h2>
       <nav className="flex-1">
         <ul className="space-y-1">
-          {/* Menambahkan onClick pada setiap NavLink */}
           <li><NavLink to="/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><NoteIcon /><span>Catatan</span></NavLink></li>
-          <li><NavLink to="/playground" onClick={handleLinkClick} className={({ isActive }) => `${linkСlass} ${isActive ? activeLinkClass : ''}`}><AssetIcon /><span>Koleksi Aset</span></NavLink></li>
+          {/* PERBAIKAN TYPO DI BAWAH INI (linkСlass -> linkClass) */}
+          <li><NavLink to="/playground" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><AssetIcon /><span>Koleksi Aset</span></NavLink></li>
           <li><NavLink to="/generators" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><GeneratorIcon /><span>Koleksi Generator</span></NavLink></li>
           <li><NavLink to="/web-collection" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><WebIcon /><span>Koleksi Web</span></NavLink></li>
           <li className="pt-2"><div className="border-t border-gray-700"></div></li>
