@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -19,22 +18,20 @@ export default defineConfig({
         display: 'standalone',
         theme_color: '#1F2937',
         background_color: '#F3F4F6',
-        // --- BAGIAN BARU DITAMBAHKAN DI SINI ---
-        screenshots: [
+        screenshots: [ // <--- PASTIKAN BAGIAN INI ADA
           {
             src: 'screenshot1.png',
-            sizes: '1080x1920', // Ganti sesuai ukuran screenshot Anda jika perlu
+            sizes: '1080x1920', 
             type: 'image/png',
             form_factor: 'narrow'
           },
           {
             src: 'screenshot2.png',
-            sizes: '1080x1920', // Ganti sesuai ukuran screenshot Anda jika perlu
+            sizes: '1080x1920',
             type: 'image/png',
             form_factor: 'narrow'
           }
         ],
-        // ------------------------------------
         icons: [
           {
             src: 'pwa-192x192.png',
