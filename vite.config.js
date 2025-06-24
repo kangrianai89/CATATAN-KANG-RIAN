@@ -22,12 +22,12 @@ export default defineConfig({
         screenshots: [
           {
             src: 'screenshot1.png',
-            sizes: '1872x750', // <-- DIUBAH SESUAI UKURAN ASLI
+            sizes: '597x1280', // <-- DIUBAH SESUAI UKURAN ASLI
             type: 'image/png'
           },
           {
             src: 'screenshot2.png',
-            sizes: '1883x790', // <-- DIUBAH SESUAI UKURAN ASLI
+            sizes: '592x1280', // <-- DIUBAH SESUAI UKURAN ASLI
             type: 'image/png'
           }
         ],
