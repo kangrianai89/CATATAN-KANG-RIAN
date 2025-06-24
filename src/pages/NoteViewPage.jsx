@@ -47,9 +47,9 @@ function NoteViewPage() {
         </div>
       </div>
 
-      <div className="prose dark:prose-invert max-w-none space-y-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         {note.sections && note.sections.length > 0 ? note.sections.map((section, index) => (
-          <div key={index} className="break-words">
+          <div key={index} className="prose dark:prose-invert max-w-none mb-8 break-words">
             <h2 className="text-2xl font-semibold border-b pb-2 dark:border-gray-600">{section.title}</h2>
             <div dangerouslySetInnerHTML={{ __html: section.content }} />
           </div>

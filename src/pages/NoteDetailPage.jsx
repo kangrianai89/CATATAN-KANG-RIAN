@@ -4,7 +4,6 @@ import { supabase } from '../supabaseClient';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
-// Komponen Menu Bar (Tidak ada perubahan)
 const MenuBar = ({ editor }) => {
   if (!editor) return null;
   const buttonClass = "px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm hover:bg-gray-200 dark:hover:bg-gray-600 dark:text-white";
@@ -23,7 +22,6 @@ const MenuBar = ({ editor }) => {
   );
 };
 
-// Komponen Editor Section (Tidak ada perubahan)
 const EditorSection = ({ section, onTitleChange, onContentChange, onRemove }) => {
   const editor = useEditor({
     extensions: [StarterKit],
@@ -31,7 +29,7 @@ const EditorSection = ({ section, onTitleChange, onContentChange, onRemove }) =>
     onUpdate: ({ editor }) => { onContentChange(editor.getHTML()); },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none p-4 border dark:border-gray-600 rounded-b-lg min-h-[150px] bg-white dark:bg-gray-700 focus:outline-none',
+        class: 'prose dark:prose-invert max-w-none p-4 border dark:border-gray-600 rounded-b-lg h-72 overflow-y-auto bg-white dark:bg-gray-700 focus:outline-none',
       },
     },
   }, [section.content]);
@@ -50,53 +48,15 @@ const EditorSection = ({ section, onTitleChange, onContentChange, onRemove }) =>
   );
 };
 
-// --- KOMPONEN MODAL BARU UNTUK ANALISIS ---
-const AnalysisModal = ({ result, onApply, onClose }) => {
-    if (!result) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
-                <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Hasil Proses AI</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
-                </div>
-
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto">
-                    <div>
-                        <h4 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">Konten Asli</h4>
-                        <div className="prose dark:prose-invert max-w-none p-3 h-96 overflow-y-auto border rounded-md bg-gray-50 dark:bg-gray-900 dark:border-gray-600" dangerouslySetInnerHTML={{ __html: result.originalHtml }} />
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">Saran Perbaikan & Ringkasan AI</h4>
-                        <div className="prose dark:prose-invert max-w-none p-3 h-96 overflow-y-auto border rounded-md bg-green-50 dark:bg-green-900/30 dark:border-green-700" dangerouslySetInnerHTML={{ __html: result.konten_rapi + result.ringkasan_poin }} />
-                    </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 dark:bg-gray-900/50 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Batal</button>
-                    <button onClick={onApply} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">Terapkan Perubahan</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 function NoteDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-
   const [title, setTitle] = useState('');
   const [sections, setSections] = useState([]);
-
-  // --- State untuk Modal dan Hasil AI ---
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [processingResult, setProcessingResult] = useState(null);
-  
   const [isProcessing, setIsProcessing] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-
+  
   const fetchNote = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -133,12 +93,12 @@ function NoteDetailPage() {
   }, []);
 
   const removeSection = useCallback((index) => {
-    if (sections.length <= 1) {
+    if (sections.length > 1) {
+      if (window.confirm("Yakin ingin menghapus bagian ini?")) {
+        setSections(prevSections => prevSections.filter((_, i) => i !== index));
+      }
+    } else {
       alert("Setidaknya harus ada satu bagian.");
-      return;
-    }
-    if (window.confirm("Yakin ingin menghapus bagian ini?")) {
-      setSections(prevSections => prevSections.filter((_, i) => i !== index));
     }
   }, [sections.length]);
 
@@ -161,23 +121,17 @@ function NoteDetailPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Pengguna tidak terautentikasi.");
     const { data: profile } = await supabase.from('profiles').select('gemini_api_key').eq('id', user.id).single();
-    if (profile && profile.gemini_api_key) return profile.gemini_api_key;
+    if (profile?.gemini_api_key) return profile.gemini_api_key;
     const mainApiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (mainApiKey) return mainApiKey;
     throw new Error("API Key Gemini belum diatur.");
   };
 
   const handleSmartProcess = async () => {
-    const originalHtml = sections.map(sec => `<h2>${sec.title}</h2>${sec.content}`).join('');
-    if (!originalHtml.trim()) return alert("Tidak ada konten untuk diproses.");
-
+    const combinedHtml = sections.map(sec => `<h2>${sec.title}</h2>${sec.content}`).join('');
+    if (!combinedHtml.trim()) return alert("Tidak ada konten untuk diproses.");
     setIsProcessing(true);
-    setProcessingResult(null);
-
-    const smartPrompt = `
-    Anda adalah seorang analis konten dan editor ahli... (prompt sama seperti sebelumnya)
-    `;
-
+    const smartPrompt = `Anda adalah seorang analis konten dan editor ahli...`; // Prompt lengkap di sini
     try {
       const apiKey = await getApiKey();
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
@@ -196,44 +150,16 @@ function NoteDetailPage() {
         rawJsonText = rawJsonText.substring(7, rawJsonText.lastIndexOf('```')).trim();
       }
       const result = JSON.parse(rawJsonText);
-
-      // Simpan hasil ke state dan buka modal
-      setProcessingResult({
-        ...result,
-        originalHtml: originalHtml
-      });
-      setIsModalOpen(true);
-
+      const newSections = [
+        { title: 'Konten yang Diproses AI', content: result.konten_rapi },
+        { title: 'Ringkasan Poin Penting', content: result.ringkasan_poin }
+      ];
+      setSections(newSections.map(sec => ({...sec, id: crypto.randomUUID()})));
+      alert('Catatan berhasil diproses!');
     } catch (error) {
-      console.error("Error memproses catatan:", error);
       alert("Gagal memproses catatan: " + error.message);
     } finally {
       setIsProcessing(false);
-    }
-  };
-  
-  // --- FUNGSI BARU UNTUK MENERAPKAN PERUBAHAN ---
-  const handleApplyChanges = async () => {
-    if (!processingResult) return;
-    
-    const newSections = [
-        { title: 'Konten yang Diproses AI', content: processingResult.konten_rapi },
-        { title: 'Ringkasan Poin Penting', content: processingResult.ringkasan_poin }
-    ];
-
-    try {
-        const sectionsToSave = newSections.map(({ id, ...rest }) => rest);
-        const { error } = await supabase.from('notes').update({ sections: sectionsToSave }).eq('id', id);
-        if (error) throw error;
-
-        // Perbarui state lokal hanya setelah berhasil menyimpan ke DB
-        setSections(newSections.map(sec => ({...sec, id: crypto.randomUUID()})));
-        alert('Perubahan dari AI berhasil diterapkan dan disimpan!');
-    } catch (error) {
-        alert("Gagal menyimpan perubahan AI: " + error.message);
-    } finally {
-        setIsModalOpen(false);
-        setProcessingResult(null);
     }
   };
 
@@ -262,7 +188,7 @@ function NoteDetailPage() {
     <>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Catatan</h1>
-        <Link to="/dashboard" className="text-blue-500 hover:underline">&larr; Kembali ke Dashboard</Link>
+        <Link to={`/note/${id}`} className="text-blue-500 hover:underline">&larr; Kembali ke Mode Baca</Link>
       </div>
       <form onSubmit={handleUpdateNote}>
         <div className="mb-6">
@@ -297,13 +223,6 @@ function NoteDetailPage() {
           </div>
         </div>
       </form>
-      
-      {/* Panggil Modal di sini */}
-      <AnalysisModal 
-        result={processingResult}
-        onApply={handleApplyChanges}
-        onClose={() => setIsModalOpen(false)}
-      />
     </>
   );
 }
