@@ -23,7 +23,7 @@ function NoteViewPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState(null);
-  const [copySuccess, setCopySuccess] = useState(false); // State untuk tombol salin
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const fetchNote = useCallback(async () => {
     if (!id) return;
@@ -48,7 +48,6 @@ function NoteViewPage() {
     fetchNote();
   }, [id, fetchNote]);
   
-  // Fungsi salin catatan, dipinjam dari halaman edit
   const handleCopyNote = () => {
     if (!note) return;
 
@@ -87,7 +86,6 @@ function NoteViewPage() {
         </p>
       </div>
 
-      {/* Grup Tombol Aksi */}
       <div className="flex flex-wrap gap-2 mb-8">
         <Link 
             to={`/note/${id}/edit`} 
@@ -105,16 +103,16 @@ function NoteViewPage() {
         </button>
       </div>
       
-      {/* Tampilan Konten Catatan */}
       <div className="space-y-8">
         {note.sections && note.sections.map((section, index) => (
-          <div key={index} className="border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm">
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-4 border-b pb-2 dark:border-gray-600 px-6 pt-4">
+          <div key={index} className="border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm overflow-hidden">
+            {/* Judul Bagian dibuat memecah kata jika terlalu panjang */}
+            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-4 border-b pb-2 dark:border-gray-600 px-6 pt-4 break-words">
               {section.title}
             </h2>
-            {/* PERUBAHAN CSS DI SINI: Konten dengan tinggi terbatas & scrollbar */}
+            {/* PERUBAHAN CSS DI SINI: Ditambahkan overflow-x-auto */}
             <div
-              className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto px-6 pb-4"
+              className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto overflow-x-auto px-6 pb-4"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
             />
           </div>
