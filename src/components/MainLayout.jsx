@@ -1,3 +1,5 @@
+// File: src/components/MainLayout.jsx
+// Status: Perbaikan tampilan responsif untuk mobile
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { Outlet } from 'react-router-dom';
@@ -26,10 +28,19 @@ function MainLayout() {
       </div>
 
       {/* Sidebar */}
+      {/* Sidebar akan ditampilkan atau disembunyikan berdasarkan state dan ukuran layar */}
       <Sidebar isOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
 
+      {/* Overlay untuk Mobile saat sidebar terbuka */}
+      {isSidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)} 
+          className="fixed inset-0 bg-black opacity-50 z-30 md:hidden"
+        ></div>
+      )}
+
       {/* Konten Utama */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 md:ml-64"> {/* <-- PERBAIKAN PENTING DI SINI */}
         <Outlet />
       </main>
       
