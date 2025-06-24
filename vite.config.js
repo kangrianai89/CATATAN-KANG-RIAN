@@ -21,13 +21,13 @@ export default defineConfig({
         background_color: '#F3F4F6',
         screenshots: [
           {
-            src: 'screenshot1.png', // Nama file yang sudah kita perbaiki
-            sizes: '1872x750',       // UKURAN ASLI dari screenshot Anda
+            src: 'screenshot1.png',
+            sizes: '1872x750', // <-- DIUBAH SESUAI UKURAN ASLI
             type: 'image/png'
           },
           {
-            src: 'screenshot2.png', // Nama file yang sudah kita perbaiki
-            sizes: '1883x790',       // UKURAN ASLI dari screenshot Anda
+            src: 'screenshot2.png',
+            sizes: '1883x790', // <-- DIUBAH SESUAI UKURAN ASLI
             type: 'image/png'
           }
         ],
