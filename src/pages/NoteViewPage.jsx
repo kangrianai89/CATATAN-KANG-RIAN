@@ -28,8 +28,7 @@ function NoteViewPage() {
 
       if (error) throw error;
       setNote(data);
-    } catch (error) {
-      alert("Gagal memuat catatan: " + error.message);
+    } catch (error)      alert("Gagal memuat catatan: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -44,8 +43,9 @@ function NoteViewPage() {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <div>
+      {/* --- PERUBAHAN UTAMA DI BAGIAN INI --- */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
+        <div className="flex-grow">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white break-words">
             {note.title}
           </h1>
@@ -56,7 +56,7 @@ function NoteViewPage() {
         </div>
         <Link 
             to={`/note/${id}/edit`} 
-            className="flex items-center px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
+            className="flex-shrink-0 w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
         >
             <EditIcon />
             <span>Edit Catatan</span>
@@ -69,7 +69,6 @@ function NoteViewPage() {
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-4 border-b pb-2 dark:border-gray-600">
               {section.title}
             </h2>
-            {/* Menggunakan DOMPurify untuk membersihkan HTML sebelum ditampilkan */}
             <div
               className="prose dark:prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
