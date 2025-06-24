@@ -30,7 +30,6 @@ function Sidebar({ isOpen, setSidebarOpen }) {
       <nav className="flex-1">
         <ul className="space-y-1">
           <li><NavLink to="/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><NoteIcon /><span>Catatan</span></NavLink></li>
-          {/* PERBAIKAN TYPO DI BAWAH INI (linkСlass -> linkClass) */}
           <li><NavLink to="/playground" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><AssetIcon /><span>Koleksi Aset</span></NavLink></li>
           <li><NavLink to="/generators" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><GeneratorIcon /><span>Koleksi Generator</span></NavLink></li>
           <li><NavLink to="/web-collection" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><WebIcon /><span>Koleksi Web</span></NavLink></li>
