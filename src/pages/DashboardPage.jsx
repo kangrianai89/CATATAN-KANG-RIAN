@@ -77,7 +77,7 @@ function DashboardPage({ session }) {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.from('notes').insert({ title: newNoteTitle, user_id: user.id, sections: [{ title: 'Bagian Pertama', content: '' }] }).select().single();
       if (error) throw error;
-      navigate(`/note/${data.id}`);
+      navigate(`/note/edit/${data.id}`);
     } catch (error) {
       alert(error.message);
     }
@@ -112,7 +112,6 @@ function DashboardPage({ session }) {
 
   return (
     <>
-      {/* BAGIAN HEADER */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold dark:text-white">Dashboard Catatan</h1>
@@ -121,7 +120,6 @@ function DashboardPage({ session }) {
         <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 w-full sm:w-auto">Logout</button>
       </div>
       
-      {/* BAGIAN FORM BUAT CATATAN */}
       <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <form onSubmit={handleCreateNote}>
           <h2 className="text-xl font-semibold mb-2 dark:text-white">Buat Catatan Baru</h2>
@@ -132,7 +130,6 @@ function DashboardPage({ session }) {
         </form>
       </div>
       
-      {/* BAGIAN DAFTAR CATATAN */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold dark:text-white">Catatan Anda</h2>
