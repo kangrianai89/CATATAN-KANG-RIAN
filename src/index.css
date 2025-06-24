@@ -14,12 +14,7 @@
     color: #ffffff;
 }
 
-/* Mengurangi jarak antar paragraf di editor Tiptap */
-.prose p {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-}
-/* Mengatur ulang jarak spasi paragraf di dalam editor Tiptap */
+/* Mengatur ulang jarak spasi paragraf di dalam editor Tiptap menjadi nol */
 .prose p {
   margin-top: 0;
   margin-bottom: 0;
