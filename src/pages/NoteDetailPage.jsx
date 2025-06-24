@@ -74,7 +74,7 @@ function NoteDetailPage() {
   const [title, setTitle] = useState('');
   const [sections, setSections] = useState([]);
 
-  const [isProcessing, setIsProcessing] = useState(false); // State baru untuk menggantikan isTidying & isSummarizing
+  const [isProcessing, setIsProcessing] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   
   const fetchNote = useCallback(async () => {
@@ -167,7 +167,6 @@ function NoteDetailPage() {
     throw new Error("API Key Gemini belum diatur di Pengaturan Akun atau di variabel lingkungan.");
   };
 
-  // --- FUNGSI BARU GABUNGAN ---
   const handleSmartProcess = async () => {
     const combinedHtml = sections.map(sec => `<h2>${sec.title}</h2>${sec.content}`).join('');
     if (!combinedHtml.trim()) return alert("Tidak ada konten untuk diproses.");
@@ -208,6 +207,10 @@ function NoteDetailPage() {
 
       const data = await response.json();
       let rawJsonText = data.candidates[0].content.parts[0].text;
+      
+      // --- KODE DEBUGGING DITAMBAHKAN DI SINI ---
+      console.log("Respons Mentah dari AI:", rawJsonText);
+      // ------------------------------------------
 
       if (rawJsonText.startsWith('```json')) {
         rawJsonText = rawJsonText.substring(7, rawJsonText.lastIndexOf('```')).trim();
@@ -299,7 +302,7 @@ function NoteDetailPage() {
           </button>
 
           <div className="flex flex-wrap gap-2">
-            {/* --- TOMBOL LAMA DIHAPUS DAN DIGANTI DENGAN TOMBOL BARU --- */}
+            {/* --- TOMBOL SUDAH DIPERBARUI --- */}
             <button type="button" onClick={handleSmartProcess} disabled={isProcessing} className="px-6 py-2 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 disabled:bg-gray-400">
                 {isProcessing ? 'Memproses...' : 'Proses & Rangkum AI ✨'}
             </button>
