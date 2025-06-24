@@ -77,7 +77,8 @@ function DashboardPage({ session }) {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.from('notes').insert({ title: newNoteTitle, user_id: user.id, sections: [{ title: 'Bagian Pertama', content: '' }] }).select().single();
       if (error) throw error;
-      navigate(`/note/edit/${data.id}`);
+      // Langsung arahkan ke halaman edit untuk catatan yang BARU dibuat
+      navigate(`/note/${data.id}/edit`);
     } catch (error) {
       alert(error.message);
     }
@@ -139,6 +140,7 @@ function DashboardPage({ session }) {
             {notes.map((note) => (
               <li key={note.id} className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border rounded-lg shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 ${note.pinned ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700' : 'bg-white dark:bg-gray-800 dark:border-gray-700'}`}>
                 
+                {/* PERUBAHAN LINK DI SINI */}
                 <Link to={`/note/${note.id}`} className="flex-grow min-w-0 mr-0 sm:mr-4 w-full">
                   <div className="flex items-center gap-2 mb-1">
                     {note.pinned && <PinIcon isPinned={true} />}

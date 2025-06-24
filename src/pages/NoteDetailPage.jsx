@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
+// Komponen Menu Bar untuk editor Tiptap
 const MenuBar = ({ editor }) => {
   if (!editor) return null;
   const buttonClass = "px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm hover:bg-gray-200 dark:hover:bg-gray-600 dark:text-white";
@@ -22,25 +23,43 @@ const MenuBar = ({ editor }) => {
   );
 };
 
+// Komponen terpisah untuk setiap bagian editor
 const EditorSection = ({ section, onTitleChange, onContentChange, onRemove }) => {
   const editor = useEditor({
     extensions: [StarterKit],
     content: section.content || '',
-    onUpdate: ({ editor }) => { onContentChange(editor.getHTML()); },
+    onUpdate: ({ editor }) => {
+      onContentChange(editor.getHTML());
+    },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none p-4 border dark:border-gray-600 rounded-b-lg h-72 overflow-y-auto bg-white dark:bg-gray-700 focus:outline-none',
+        // --- PERUBAHAN CSS DI SINI ---
+        class: 'prose dark:prose-invert max-w-none p-4 border dark:border-gray-600 rounded-b-lg min-h-[200px] max-h-[500px] overflow-y-auto bg-white dark:bg-gray-700 focus:outline-none',
       },
     },
-  }, [section.content]);
+  }, [section.id, section.content]);
 
-  if (!editor) { return <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700"><p className="dark:text-gray-400">Memuat editor...</p></div>; }
+  if (!editor) {
+    return (
+      <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700">
+        <p className="dark:text-gray-400">Memuat editor...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700">
       <div className="flex justify-between items-center mb-2">
-        <input type="text" placeholder="Judul Bagian..." value={section.title} onChange={(e) => onTitleChange(e.target.value)} className="text-lg font-semibold bg-transparent w-full focus:outline-none dark:text-white px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md" />
-        {onRemove && (<button type="button" onClick={onRemove} className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 flex-shrink-0 ml-2">Hapus Bagian</button>)}
+        <input
+          type="text"
+          placeholder="Judul Bagian..."
+          value={section.title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          className="text-lg font-semibold bg-transparent w-full focus:outline-none dark:text-white px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md"
+        />
+        {onRemove && (
+            <button type="button" onClick={onRemove} className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 flex-shrink-0 ml-2">Hapus Bagian</button>
+        )}
       </div>
       <MenuBar editor={editor} />
       <EditorContent editor={editor} />
@@ -52,8 +71,10 @@ function NoteDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+
   const [title, setTitle] = useState('');
   const [sections, setSections] = useState([]);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   
@@ -63,6 +84,7 @@ function NoteDetailPage() {
     try {
       const { data, error } = await supabase.from('notes').select('title, sections').eq('id', id).single();
       if (error) throw error;
+
       setTitle(data.title || '');
       if (data.sections && data.sections.length > 0) {
         setSections(data.sections.map(sec => ({...sec, id: crypto.randomUUID()})));
@@ -93,14 +115,17 @@ function NoteDetailPage() {
   }, []);
 
   const removeSection = useCallback((index) => {
-    if (sections.length > 1) {
-      if (window.confirm("Yakin ingin menghapus bagian ini?")) {
-        setSections(prevSections => prevSections.filter((_, i) => i !== index));
+    setSections(prevSections => {
+      if (prevSections.length <= 1) {
+        alert("Setidaknya harus ada satu bagian.");
+        return prevSections;
       }
-    } else {
-      alert("Setidaknya harus ada satu bagian.");
-    }
-  }, [sections.length]);
+      if (window.confirm("Yakin ingin menghapus bagian ini?")) {
+        return prevSections.filter((_, i) => i !== index);
+      }
+      return prevSections;
+    });
+  }, []);
 
   const handleUpdateNote = async (e) => {
     e.preventDefault();
@@ -110,6 +135,7 @@ function NoteDetailPage() {
             title: title,
             sections: sectionsToSave
         }).eq('id', id);
+
         if (error) throw error;
         alert('Catatan berhasil diperbarui!');
     } catch (error) {
@@ -118,45 +144,107 @@ function NoteDetailPage() {
   };
 
   const getApiKey = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Pengguna tidak terautentikasi.");
-    const { data: profile } = await supabase.from('profiles').select('gemini_api_key').eq('id', user.id).single();
-    if (profile?.gemini_api_key) return profile.gemini_api_key;
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        throw new Error("Pengguna tidak terautentikasi.");
+    }
+
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('gemini_api_key')
+        .eq('id', user.id)
+        .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error("Error fetching profile:", profileError);
+      throw new Error("Gagal memuat API Key dari profil: " + profileError.message);
+    }
+
+    if (profile && profile.gemini_api_key) return profile.gemini_api_key;
+
     const mainApiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (mainApiKey) return mainApiKey;
-    throw new Error("API Key Gemini belum diatur.");
+
+    throw new Error("API Key Gemini belum diatur di Pengaturan Akun atau di variabel lingkungan.");
   };
 
   const handleSmartProcess = async () => {
     const combinedHtml = sections.map(sec => `<h2>${sec.title}</h2>${sec.content}`).join('');
     if (!combinedHtml.trim()) return alert("Tidak ada konten untuk diproses.");
+
     setIsProcessing(true);
-    const smartPrompt = `Anda adalah seorang analis konten dan editor ahli...`; // Prompt lengkap di sini
+    
+    const smartPrompt = `
+    Anda adalah seorang analis konten dan editor ahli. Diberikan konten HTML, lakukan dua tugas berikut secara berurutan:
+    1.  **Tidy Up (Merapikan):** Analisis dan rapikan seluruh konten HTML agar memiliki alur yang baik, tata bahasa yang benar, dan struktur yang rapi (paragraf <p>, sub-judul <h2>/<h3> jika perlu, penebalan <strong> pada kata kunci). Pertahankan semua konten asli, jangan menghilangkannya.
+    2.  **Summarize & Analyze (Meringkas & Menganalisis):** Setelah merapikan, buat analisis dan ringkasan mendalam dari konten tersebut.
+        * **Format:** Hasilnya HARUS dalam bentuk poin-poin HTML (menggunakan tag <ul> dan <li>).
+        * **Kuantitas:** Hasilkan **minimal 3 hingga 5 poin** yang paling signifikan.
+        * **Kualitas:** Setiap poin harus berupa kalimat lengkap dan informatif. Jangan hanya mengulang kata, tapi jelaskan **konsep, argumen utama, atau alur kejadian penting** dari teks. Jika ada kesimpulan atau pesan moral, pastikan itu termasuk sebagai poin terakhir.
+
+    HASILKAN OUTPUT HANYA DALAM FORMAT JSON YANG VALID dengan struktur berikut:
+    {
+      "konten_rapi": "Konten HTML yang sudah dirapikan ada di sini...",
+      "ringkasan_poin": "<ul><li>Poin ringkasan pertama yang mendalam.</li><li>Poin ringkasan kedua yang informatif.</li><li>Poin ringkasan ketiga yang menangkap kesimpulan.</li></ul>"
+    }
+
+    Konten HTML untuk diproses:
+    ---
+    ${combinedHtml}
+    ---
+    `.trim();
+
     try {
       const apiKey = await getApiKey();
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: smartPrompt }] }] })
       });
+
       if (!response.ok) {
         const errorBody = await response.json();
         throw new Error(`API request failed: ${errorBody.error.message}`);
       }
+
       const data = await response.json();
       let rawJsonText = data.candidates[0].content.parts[0].text;
+      
+      console.log("Respons Mentah dari AI:", rawJsonText);
+
       if (rawJsonText.startsWith('```json')) {
         rawJsonText = rawJsonText.substring(7, rawJsonText.lastIndexOf('```')).trim();
       }
+      
       const result = JSON.parse(rawJsonText);
+      const tidiedHtml = result.konten_rapi;
+      const summaryHtml = result.ringkasan_poin;
+
+      if (!tidiedHtml || !summaryHtml) {
+        throw new Error("Respons AI tidak memiliki format JSON yang diharapkan.");
+      }
+      
       const newSections = [
-        { title: 'Konten yang Diproses AI', content: result.konten_rapi },
-        { title: 'Ringkasan Poin Penting', content: result.ringkasan_poin }
+        { title: 'Konten yang Diproses AI', content: tidiedHtml },
+        { title: 'Ringkasan Poin Penting', content: summaryHtml }
       ];
+
+      const newSectionsToSave = newSections.map(({ id, ...rest }) => rest);
+
+      const { error: updateError } = await supabase
+        .from('notes')
+        .update({ sections: newSectionsToSave })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+      
       setSections(newSections.map(sec => ({...sec, id: crypto.randomUUID()})));
-      alert('Catatan berhasil diproses!');
+      alert('Catatan berhasil diproses dan disimpan otomatis!');
+
     } catch (error) {
+      console.error("Error memproses catatan:", error);
       alert("Gagal memproses catatan: " + error.message);
     } finally {
       setIsProcessing(false);
@@ -169,11 +257,13 @@ function NoteDetailPage() {
         tempDiv.innerHTML = html;
         return tempDiv.textContent || tempDiv.innerText || '';
     };
+
     let fullNoteText = `# ${title}\n\n`;
     sections.forEach(sec => {
         fullNoteText += `## ${sec.title}\n`;
         fullNoteText += `${convertHtmlToText(sec.content)}\n\n`;
     });
+
     navigator.clipboard.writeText(fullNoteText.trim()).then(() => {
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
@@ -187,14 +277,16 @@ function NoteDetailPage() {
   return (
     <>
       <div className="flex justify-between items-center mb-4">
+        {/* PERUBAHAN JUDUL HALAMAN */}
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Catatan</h1>
-        <Link to={`/note/${id}`} className="text-blue-500 hover:underline">&larr; Kembali ke Mode Baca</Link>
+        <Link to="/dashboard" className="text-blue-500 hover:underline">&larr; Kembali ke Dashboard</Link>
       </div>
       <form onSubmit={handleUpdateNote}>
         <div className="mb-6">
           <label htmlFor="main-title" className="block text-xl font-semibold mb-2 text-gray-900 dark:text-white">Judul Utama Catatan</label>
           <input id="main-title" type="text" className="w-full text-2xl font-bold px-3 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600" value={title} onChange={(e) => setTitle(e.target.value)} required/>
         </div>
+
         <div className="space-y-6">
           {sections.map((section, index) => (
             <EditorSection
@@ -206,10 +298,12 @@ function NoteDetailPage() {
             />
           ))}
         </div>
+
         <div className="mt-6 pt-6 border-t dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
           <button type="button" onClick={addSection} className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600">
             + Tambah Bagian
           </button>
+
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={handleSmartProcess} disabled={isProcessing} className="px-6 py-2 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 disabled:bg-gray-400">
                 {isProcessing ? 'Memproses...' : 'Proses & Rangkum AI ✨'}
