@@ -10,7 +10,8 @@ const MenuIcon = () => (
   </svg>
 );
 
-function MainLayout() {
+// MainLayout sekarang menerima prop 'session'
+function MainLayout({ session }) { 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -23,11 +24,13 @@ function MainLayout() {
         </button>
       </div>
 
-      <Sidebar isOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
+      {/* Teruskan session ke Sidebar */}
+      <Sidebar isOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} session={session} />
 
       {/* Konten Utama - Ditambahkan min-w-0 */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
-        <Outlet />
+        {/* Klon Outlet dan teruskan session sebagai prop ke komponen halaman anak */}
+        {React.cloneElement(<Outlet />, { session: session })}
       </main>
       
     </div>

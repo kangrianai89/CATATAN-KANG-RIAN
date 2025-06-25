@@ -1,15 +1,15 @@
+// File: src/main.jsx
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-// 1. Impor ThemeProvider
 import { ThemeProvider } from './context/ThemeContext.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    {/* 2. Bungkus App dengan ThemeProvider */}
+  // <React.StrictMode> <-- Hapus atau beri komentar pada baris ini
     <ThemeProvider>
       <App />
     </ThemeProvider>
-  </React.StrictMode>,
+  // </React.StrictMode>, <-- Hapus atau beri komentar pada baris ini
 )
