@@ -2,24 +2,28 @@
 // Status: Layout deskripsi diubah agar tampil di kanan gambar pada layar besar
 // Perbaikan: Output deskripsi juga menggunakan textarea (read-only) saat tidak dalam mode edit
 // Perbaikan: Tinggi minimal textarea keterangan/deskripsi disesuaikan menjadi 250px
+// BARU: Implementasi penyimpanan draf otomatis untuk aset baru menggunakan sessionStorage
 
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Editor from '@monaco-editor/react';
 
+// Kunci penyimpanan untuk draf aset baru
+const NEW_ASSET_DRAFT_KEY = 'asset_draft_new_asset';
+
 function AssetDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   // Tentukan mode berdasarkan ID dari URL
-  const isNewAsset = id === 'new'; // true jika mode membuat aset baru, false jika mengedit yang sudah ada
+  const isNewAsset = id === 'new';
 
   const [loading, setLoading] = useState(true);
-  const [asset, setAsset] = useState(null); // Akan tetap null jika aset baru
+  const [asset, setAsset] = useState(null);
   const [imageUrl, setImageUrl] = useState(null); 
   
-  const [isEditing, setIsEditing] = useState(isNewAsset); // Langsung ke mode edit jika aset baru
+  const [isEditing, setIsEditing] = useState(isNewAsset);
   const [isSaving, setIsSaving] = useState(false);
 
   // State untuk form edit
@@ -38,7 +42,6 @@ function AssetDetailPage() {
       if (!isNewAsset) { // Hanya fetch jika bukan aset baru
         setLoading(true);
         try {
-          // Tambahkan 'description' ke query select
           const { data, error } = await supabase.from('pages').select('*, categories(id, name)').eq('id', id).single(); 
           if (error) throw error;
 
@@ -56,19 +59,28 @@ function AssetDetailPage() {
           }
         } catch (error) {
           alert("Gagal memuat aset: " + error.message);
-          navigate('/playground'); // Kembali ke playground jika aset tidak ditemukan atau error
+          navigate('/playground');
         } finally {
           setLoading(false);
         }
       } else {
-        // Jika aset baru, tidak perlu fetch, langsung siapkan untuk edit
+        // Jika aset baru, pulihkan draf dari sessionStorage
         setLoading(false);
         setAsset({ id: 'new' }); // Set asset ke objek dummy agar tidak null, tapi id-nya tetap 'new'
-        // Kosongkan semua field untuk aset baru
-        setEditTitle('');
-        setEditLink('');
-        setEditCode('');
-        setEditDescription('');
+        const savedDraft = sessionStorage.getItem(NEW_ASSET_DRAFT_KEY);
+        if (savedDraft) {
+          const draft = JSON.parse(savedDraft);
+          setEditTitle(draft.title || '');
+          setEditLink(draft.link || '');
+          setEditCode(draft.code || '');
+          setEditDescription(draft.description || '');
+        } else {
+          // Kosongkan semua field jika tidak ada draf
+          setEditTitle('');
+          setEditLink('');
+          setEditCode('');
+          setEditDescription('');
+        }
         setNewImageFile(null);
         setImageUrl(null); // Pastikan preview gambar kosong untuk aset baru
       }
@@ -83,6 +95,19 @@ function AssetDetailPage() {
     return () => window.removeEventListener('themeChanged', handleThemeChange);
 
   }, [id, navigate, isNewAsset]); // Tambahkan isNewAsset ke dependency array
+
+  // Efek untuk menyimpan draf ke sessionStorage saat ada perubahan pada aset baru
+  useEffect(() => {
+    if (isNewAsset) {
+      const draft = {
+        title: editTitle,
+        link: editLink,
+        code: editCode,
+        description: editDescription,
+      };
+      sessionStorage.setItem(NEW_ASSET_DRAFT_KEY, JSON.stringify(draft));
+    }
+  }, [editTitle, editLink, editCode, editDescription, isNewAsset]);
 
   const handleFileSelected = (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -164,6 +189,11 @@ function AssetDetailPage() {
       setIsEditing(false);
       alert(`Aset berhasil di${isNewAsset ? 'buat' : 'perbarui'}!`);
 
+      // Hapus draf dari sessionStorage setelah berhasil disimpan
+      if (isNewAsset) {
+        sessionStorage.removeItem(NEW_ASSET_DRAFT_KEY);
+      }
+
       if (isNewAsset) {
         navigate(`/asset/${response.id}`);
       }
@@ -172,6 +202,24 @@ function AssetDetailPage() {
       alert("Gagal menyimpan aset: " + error.message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (isNewAsset) {
+      // Hapus draf jika batal membuat aset baru
+      sessionStorage.removeItem(NEW_ASSET_DRAFT_KEY); 
+      navigate('/playground'); // Kembali ke playground
+    } else {
+      // Reset form ke nilai asli jika batal edit
+      setEditTitle(asset.title || '');
+      setEditLink(asset.external_link || '');
+      setEditCode(asset.code || '');
+      setEditDescription(asset.description || ''); 
+      setNewImageFile(null);
+      setImageUrl(asset.image_path ? supabase.storage.from('asset-images').getPublicUrl(asset.image_path).data.publicUrl : null); 
+      if(document.getElementById('edit-file-input')) document.getElementById('edit-file-input').value = "";
     }
   };
 
@@ -190,10 +238,8 @@ function AssetDetailPage() {
         )}
       </div>
 
-      {/* --- BAGIAN BARU: CONTAINER FLEX UNTUK GAMBAR DAN DESKRIPSI --- */}
       <div className="flex flex-col md:flex-row md:items-start gap-8">
-        {/* Kontainer Gambar */}
-        <div className="md:w-1/2"> {/* Ambil setengah lebar di layar medium ke atas */}
+        <div className="md:w-1/2">
           <h2 className="text-xl font-semibold mb-2 dark:text-white">Gambar</h2>
           {(imageUrl || newImageFile) && !isEditing && (
               <img src={newImageFile ? URL.createObjectURL(newImageFile) : imageUrl} alt={asset?.title || "Gambar aset"} className="max-w-full rounded-lg shadow-md border" />
@@ -208,28 +254,25 @@ function AssetDetailPage() {
           {!imageUrl && !newImageFile && !isEditing && <p className="text-gray-500 italic">Tidak ada gambar.</p>}
         </div>
 
-        {/* Kontainer Keterangan/Deskripsi */}
-        <div className="md:w-1/2"> {/* Ambil setengah lebar di layar medium ke atas */}
+        <div className="md:w-1/2">
           <label className="block text-lg font-semibold mb-2 dark:text-white">Keterangan/Deskripsi</label>
           {isEditing ? (
             <textarea
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px]" // Min-height disesuaikan
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px]"
               placeholder="Tambahkan keterangan atau deskripsi untuk aset ini..."
             ></textarea>
           ) : (
-            // Menggunakan textarea read-only saat tidak dalam mode edit
             <textarea
               value={asset?.description || ''}
               readOnly
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px] resize-none" // resize-none untuk menonaktifkan resize manual
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px] resize-none"
               placeholder="Tidak ada keterangan."
             ></textarea>
           )}
         </div>
       </div>
-      {/* ---------------------------------------------------- */}
 
       <div>
         <label className="block text-lg font-semibold mb-2 dark:text-white">Cuplikan Kode HTML</label>
@@ -267,20 +310,7 @@ function AssetDetailPage() {
             <Link to="/playground" className="text-sm text-blue-500 hover:underline">&larr; Kembali</Link>
             {isEditing ? (
               <>
-                <button type="button" onClick={() => {
-                  setIsEditing(false);
-                  if (isNewAsset) navigate('/playground');
-                  else {
-                      // Reset form ke nilai asli jika batal edit
-                      setEditTitle(asset.title || '');
-                      setEditLink(asset.external_link || '');
-                      setEditCode(asset.code || '');
-                      setEditDescription(asset.description || ''); 
-                      setNewImageFile(null);
-                      setImageUrl(asset.image_path ? supabase.storage.from('asset-images').getPublicUrl(asset.image_path).data.publicUrl : null); 
-                      if(document.getElementById('edit-file-input')) document.getElementById('edit-file-input').value = "";
-                  }
-                }} className="px-4 py-2 text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">Batal</button>
+                <button type="button" onClick={handleCancelEdit} className="px-4 py-2 text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">Batal</button>
                 <button type="submit" disabled={isSaving} className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 disabled:bg-gray-400">
                   {isSaving ? (isNewAsset ? 'Membuat...' : 'Menyimpan...') : (isNewAsset ? 'Buat Aset' : 'Simpan')}
                 </button>
