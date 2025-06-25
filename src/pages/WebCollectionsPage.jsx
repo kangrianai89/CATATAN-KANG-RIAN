@@ -87,8 +87,7 @@ function WebCollectionsPage({ session }) {
         .insert({
           user_id: user.id,
           title: newCollectionTitle,
-          // Hapus baris ini karena kolom 'description' sudah dihapus dari tabel web_collections
-          // description: newCollectionDescription, 
+          // description: newCollectionDescription, // Baris ini tetap dihapus sesuai keputusan sebelumnya
           category_id: selectedCategory,
         })
         .select(`
@@ -102,7 +101,7 @@ function WebCollectionsPage({ session }) {
 
       setCollections([...collections, data[0]]);
       setNewCollectionTitle('');
-      setNewCollectionDescription(''); // Tetap reset state input form
+      setNewCollectionDescription('');
       alert('Koleksi web berhasil ditambahkan!');
     } catch (err) {
       console.error("Error adding web collection:", err.message);
@@ -224,7 +223,52 @@ function WebCollectionsPage({ session }) {
 
   return (
     <div className="p-6 bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
-      <h1 className="text-3xl font-bold mb-8">Koleksi Web Saya</h1>
+      {/* Daftar Koleksi Web Induk - DIPINDAHKAN KE ATAS */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8"> {/* Menambahkan mb-8 untuk jarak */}
+        <h2 className="text-2xl font-semibold mb-4">Daftar Koleksi Web Anda</h2>
+        {collections.length === 0 ? (
+          <p className="text-center text-gray-600 dark:text-gray-400">Belum ada koleksi web. Tambahkan yang pertama di bawah!</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {collections.map((collectionItem) => (
+              <div
+                key={collectionItem.id}
+                onClick={() => handleCardClick(collectionItem.id)}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 flex flex-col justify-between
+                           cursor-pointer hover:shadow-lg transition-shadow duration-200"
+              >
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 flex items-center justify-between">
+                    <span className="text-gray-900 dark:text-gray-100"> 
+                      {collectionItem.title}
+                    </span>
+                    <button
+                      onClick={(e) => handleDeleteCollection(collectionItem.id, e)}
+                      className="text-red-500 hover:text-red-700 ml-2 z-10"
+                      title="Hapus Koleksi (dan semua item di dalamnya)"
+                    >
+                      &times;
+                    </button>
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    Kategori: <span className="font-medium">{collectionItem.web_categories ? collectionItem.web_categories.name : 'Tidak Terkategori'}</span>
+                  </p>
+                  {/* description koleksi induk bisa ditampilkan jika Anda menambahkan kembali kolomnya di DB */}
+                  {collectionItem.description && (
+                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-3">{collectionItem.description}</p>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Ditambahkan: {new Date(collectionItem.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Judul Halaman Utama */}
+      <h1 className="text-3xl font-bold mb-8">Koleksi Web Saya</h1> {/* Menambahkan mb-8 untuk jarak */}
 
       {/* Form Tambah Kategori */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
@@ -319,49 +363,6 @@ function WebCollectionsPage({ session }) {
             Tambah Koleksi Web
           </button>
         </form>
-      </div>
-
-      {/* Daftar Koleksi Web Induk */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 className="text-2xl font-semibold mb-4">Daftar Koleksi Web Anda</h2>
-        {collections.length === 0 ? (
-          <p className="text-center text-gray-600 dark:text-gray-400">Belum ada koleksi web. Tambahkan yang pertama di atas!</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {collections.map((collectionItem) => (
-              <div
-                key={collectionItem.id}
-                onClick={() => handleCardClick(collectionItem.id)}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 flex flex-col justify-between
-                           cursor-pointer hover:shadow-lg transition-shadow duration-200"
-              >
-                <div>
-                  <h3 className="text-xl font-semibold mb-2 flex items-center justify-between">
-                    <span className="text-gray-900 dark:text-gray-100"> 
-                      {collectionItem.title}
-                    </span>
-                    <button
-                      onClick={(e) => handleDeleteCollection(collectionItem.id, e)}
-                      className="text-red-500 hover:text-red-700 ml-2 z-10"
-                      title="Hapus Koleksi (dan semua item di dalamnya)"
-                    >
-                      &times;
-                    </button>
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Kategori: <span className="font-medium">{collectionItem.web_categories ? collectionItem.web_categories.name : 'Tidak Terkategori'}</span>
-                  </p>
-                  {collectionItem.description && (
-                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-3">{collectionItem.description}</p>
-                  )}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Ditambahkan: {new Date(collectionItem.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

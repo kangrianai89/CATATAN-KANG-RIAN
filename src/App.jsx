@@ -15,9 +15,7 @@ import ImageReaderPage from './pages/ImageReaderPage';
 import SettingsPage from './pages/SettingsPage';
 import NoteViewPage from './pages/NoteViewPage';
 import WebCollectionsPage from './pages/WebCollectionsPage'; 
-// --- Mengubah import komponen detail Koleksi Web ---
 import WebCollectionDetailPage from './pages/WebCollectionDetailPage';
-
 
 import { ThemeProvider } from './context/ThemeContext.jsx';
 
@@ -40,12 +38,10 @@ function App() {
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
 
-  // ProtectedLayout sekarang menerima children dan session
   const ProtectedLayout = ({ children, session }) => {
     if (!session) {
       return <Navigate to="/" />;
     }
-    // MainLayout akan menerima children dan session
     return <MainLayout session={session}>{children}</MainLayout>;
   };
 
@@ -55,9 +51,10 @@ function App() {
           <Routes>
             <Route path="/" element={!session ? <LoginPage /> : <Navigate to="/dashboard" />} />
             <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/dashboard" />} />
-            {/* Teruskan session ke ProtectedLayout sebagai prop */}
             <Route element={<ProtectedLayout session={session} />}>
               <Route path="/dashboard" element={<DashboardPage session={session} />} />
+              {/* --- Rute baru untuk Dashboard dengan filter kategori --- */}
+              <Route path="/dashboard/category/:categoryId" element={<DashboardPage session={session} />} />
               
               <Route path="/note/:id" element={<NoteViewPage />} />
               <Route path="/note/:id/edit" element={<NoteDetailPage />} />
@@ -70,9 +67,7 @@ function App() {
               <Route path="/image-reader" element={<ImageReaderPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               
-              {/* Teruskan session ke WebCollectionsPage */}
               <Route path="/web-collections" element={<WebCollectionsPage session={session} />} />
-              {/* --- Rute untuk Detail Koleksi Web (menggunakan komponen yang sudah diganti nama) --- */}
               <Route path="/web-collections/:id" element={<WebCollectionDetailPage session={session} />} />
 
             </Route>

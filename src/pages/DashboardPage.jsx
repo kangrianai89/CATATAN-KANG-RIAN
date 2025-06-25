@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom'; // Tambahkan useParams
 
 const PinIcon = ({ isPinned }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -8,22 +8,25 @@ const PinIcon = ({ isPinned }) => (
 
 function DashboardPage({ session }) {
   const navigate = useNavigate();
+  const { categoryId } = useParams(); // Mengambil categoryId dari URL
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [notes, setNotes] = useState([]);
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [categories, setCategories] = useState([]);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('');
+  // const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(''); // Tidak digunakan lagi, filter dari URL
+  const [searchTerm, setSearchTerm] = useState(''); // State untuk pencarian
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
+  // Perbarui useEffect untuk memanggil fetchNotes dengan categoryId dari URL dan searchTerm
   useEffect(() => {
-    fetchNotes();
-  }, [selectedCategoryFilter]);
+    fetchNotes(categoryId, searchTerm);
+  }, [categoryId, searchTerm]); // Dependency pada categoryId dan searchTerm
 
-  const fetchNotes = async () => {
+  const fetchNotes = async (currentCategoryId, currentSearchTerm) => {
     setLoadingNotes(true);
     try {
       let query = supabase
@@ -32,8 +35,14 @@ function DashboardPage({ session }) {
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false });
       
-      if (selectedCategoryFilter) {
-        query = query.eq('category_id', selectedCategoryFilter);
+      // Filter berdasarkan kategori dari URL
+      if (currentCategoryId) {
+        query = query.eq('category_id', currentCategoryId);
+      }
+      
+      // Filter berdasarkan search term
+      if (currentSearchTerm) {
+        query = query.ilike('title', `%${currentSearchTerm}%`); // Pencarian tidak case-sensitive
       }
       
       const { data, error } = await query;
@@ -77,8 +86,11 @@ function DashboardPage({ session }) {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.from('notes').insert({ title: newNoteTitle, user_id: user.id, sections: [{ title: 'Bagian Pertama', content: '' }] }).select().single();
       if (error) throw error;
-      // Langsung arahkan ke halaman edit untuk catatan yang BARU dibuat
-      navigate(`/note/${data.id}/edit`);
+      // Setelah membuat catatan, kita bisa langsung navigasi ke halaman editnya
+      // Atau, jika ingin tetap di dashboard, refresh notes dengan filter/search saat ini
+      // navigate(`/note/${data.id}/edit`);
+      setNewNoteTitle(''); // Kosongkan input
+      fetchNotes(categoryId, searchTerm); // Refresh catatan dengan filter/search yang aktif
     } catch (error) {
       alert(error.message);
     }
@@ -100,9 +112,9 @@ function DashboardPage({ session }) {
     try {
         const { data, error } = await supabase.from('notes').update({ pinned: !currentStatus }).eq('id', noteId).select().single();
         if (error) throw error;
-        fetchNotes();
+        fetchNotes(categoryId, searchTerm); // Panggil fetchNotes dengan filter/search saat ini
     } catch (error) {
-        alert('Gagal memperbarui pin: ' + error.message);
+      alert('Gagal memperbarui pin: ' + error.message);
     }
   };
 
@@ -121,26 +133,67 @@ function DashboardPage({ session }) {
         <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 w-full sm:w-auto">Logout</button>
       </div>
       
+      {/* Bagian Filter Kategori & Pencarian */}
       <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <form onSubmit={handleCreateNote}>
-          <h2 className="text-xl font-semibold mb-2 dark:text-white">Buat Catatan Baru</h2>
-          <div className="flex flex-col sm:flex-row items-center gap-2">
-            <input type="text" placeholder="Judul Catatan..." className="w-full flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} required/>
-            <button type="submit" className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Buat & Edit</button>
+        <h2 className="text-xl font-semibold mb-3 dark:text-white">Filter & Pencarian Catatan</h2>
+        
+        {/* Input Pencarian */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Cari catatan berdasarkan judul..."
+            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Daftar Kategori sebagai Filter */}
+        <div className="mb-4">
+          <h3 className="font-medium mb-2 dark:text-white">Kategori Catatan:</h3>
+          <div className="flex flex-wrap gap-2">
+            <Link 
+              to="/dashboard" 
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${!categoryId ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'}`}
+            >
+              Semua Kategori
+            </Link>
+            {categories.map((cat) => (
+              <Link 
+                key={cat.id} 
+                to={`/dashboard/category/${cat.id}`} 
+                className={`px-3 py-1 text-sm rounded-full transition-colors ${categoryId === cat.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'}`}
+              >
+                {cat.name}
+              </Link>
+            ))}
           </div>
+        </div>
+
+        {/* Form Tambah Kategori (tetap di sini untuk kemudahan manajemen) */}
+        <hr className="my-4 border-gray-200 dark:border-gray-700" />
+        <h3 className="text-lg font-semibold mb-2 dark:text-white">Tambah Kategori Baru</h3>
+        <form onSubmit={handleCreateCategory} className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Nama Kategori..."
+            className="flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            required
+          />
+          <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Tambah</button>
         </form>
       </div>
-      
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold dark:text-white">Catatan Anda</h2>
-        </div>
+
+      {/* Bagian "Catatan Anda" (Daftar Catatan) */}
+      <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+        <h2 className="text-2xl font-semibold mb-4 dark:text-white">Catatan Anda {categoryId && `di Kategori: ${categories.find(c => c.id === categoryId)?.name || 'Tidak Ditemukan'}`}</h2>
         {loadingNotes ? <p className="dark:text-gray-400">Memuat catatan...</p> : notes.length === 0 ? <p className="dark:text-gray-400">Tidak ada catatan.</p> : (
           <ul className="space-y-4">
             {notes.map((note) => (
               <li key={note.id} className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border rounded-lg shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 ${note.pinned ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700' : 'bg-white dark:bg-gray-800 dark:border-gray-700'}`}>
                 
-                {/* PERUBAHAN LINK DI SINI */}
                 <Link to={`/note/${note.id}`} className="flex-grow min-w-0 mr-0 sm:mr-4 w-full">
                   <div className="flex items-center gap-2 mb-1">
                     {note.pinned && <PinIcon isPinned={true} />}
@@ -165,6 +218,17 @@ function DashboardPage({ session }) {
             ))}
           </ul>
         )}
+      </div>
+
+      {/* Bagian "Buat Catatan Baru" */}
+      <div className="p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+        <form onSubmit={handleCreateNote}>
+          <h2 className="text-xl font-semibold mb-2 dark:text-white">Buat Catatan Baru</h2>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <input type="text" placeholder="Judul Catatan..." className="w-full flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} required/>
+            <button type="submit" className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Buat & Edit</button>
+          </div>
+        </form>
       </div>
     </>
   );
