@@ -15,8 +15,8 @@ import ImageReaderPage from './pages/ImageReaderPage';
 import SettingsPage from './pages/SettingsPage';
 import NoteViewPage from './pages/NoteViewPage';
 import WebCollectionsPage from './pages/WebCollectionsPage'; 
-// --- Import komponen baru untuk Detail Koleksi Web ---
-import WebLinkDetailPage from './pages/WebLinkDetailPage';
+// --- Mengubah import komponen detail Koleksi Web ---
+import WebCollectionDetailPage from './pages/WebCollectionDetailPage';
 
 
 import { ThemeProvider } from './context/ThemeContext.jsx';
@@ -72,8 +72,8 @@ function App() {
               
               {/* Teruskan session ke WebCollectionsPage */}
               <Route path="/web-collections" element={<WebCollectionsPage session={session} />} />
-              {/* --- Rute baru untuk Detail Koleksi Web --- */}
-              <Route path="/web-collections/:id" element={<WebLinkDetailPage session={session} />} />
+              {/* --- Rute untuk Detail Koleksi Web (menggunakan komponen yang sudah diganti nama) --- */}
+              <Route path="/web-collections/:id" element={<WebCollectionDetailPage session={session} />} />
 
             </Route>
           </Routes>

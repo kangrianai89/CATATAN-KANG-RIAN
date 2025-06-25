@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 function WebCollectionsPage({ session }) {
-  const navigate = useNavigate(); // Inisialisasi useNavigate
-  const [webCollections, setWebCollections] = useState([]);
+  const navigate = useNavigate();
+  const [collections, setCollections] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // State untuk form tambah/edit koleksi web
-  const [newLinkTitle, setNewLinkTitle] = useState('');
-  const [newLinkUrl, setNewLinkUrl] = useState('');
-  const [newLinkDescription, setNewLinkDescription] = useState('');
+  // State baru untuk form tambah koleksi induk
+  const [newCollectionTitle, setNewCollectionTitle] = useState('');
+  // newCollectionDescription tetap ada untuk inputan user
+  const [newCollectionDescription, setNewCollectionDescription] = useState(''); 
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  // State untuk form tambah kategori
+  // State untuk form tambah kategori (tetap sama)
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // Dapatkan user dari session prop
   const user = session?.user;
 
   // --- Fungsi Pengambilan Data ---
@@ -41,12 +40,11 @@ function WebCollectionsPage({ session }) {
 
         if (categoriesError) throw categoriesError;
         setCategories(categoriesData);
-        // Set default category jika ada
         if (categoriesData.length > 0 && !selectedCategory) {
           setSelectedCategory(categoriesData[0].id);
         }
 
-        // Ambil koleksi web beserta nama kategori
+        // Ambil KOLEKSI INDUK (web_collections) beserta nama kategori
         const { data: collectionsData, error: collectionsError } = await supabase
           .from('web_collections')
           .select(`
@@ -58,7 +56,7 @@ function WebCollectionsPage({ session }) {
           .eq('user_id', user.id);
 
         if (collectionsError) throw collectionsError;
-        setWebCollections(collectionsData);
+        setCollections(collectionsData);
 
       } catch (err) {
         console.error("Error fetching data:", err.message);
@@ -71,15 +69,15 @@ function WebCollectionsPage({ session }) {
     fetchData();
   }, [user, selectedCategory]);
 
-  // --- Fungsi Tambah Koleksi Web ---
-  const handleAddWebLink = async (e) => {
+  // --- Fungsi Tambah KOLEKSI INDUK BARU ---
+  const handleAddCollection = async (e) => {
     e.preventDefault();
-    if (!newLinkTitle || !newLinkUrl || !selectedCategory) {
-      alert("Judul, URL, dan Kategori tidak boleh kosong!");
+    if (!newCollectionTitle || !selectedCategory) {
+      alert("Judul dan Kategori koleksi tidak boleh kosong!");
       return;
     }
     if (!user) {
-      alert("Anda harus login untuk menambahkan link.");
+      alert("Anda harus login untuk menambahkan koleksi.");
       return;
     }
 
@@ -88,9 +86,9 @@ function WebCollectionsPage({ session }) {
         .from('web_collections')
         .insert({
           user_id: user.id,
-          title: newLinkTitle,
-          url: newLinkUrl,
-          description: newLinkDescription,
+          title: newCollectionTitle,
+          // Hapus baris ini karena kolom 'description' sudah dihapus dari tabel web_collections
+          // description: newCollectionDescription, 
           category_id: selectedCategory,
         })
         .select(`
@@ -102,18 +100,17 @@ function WebCollectionsPage({ session }) {
 
       if (error) throw error;
 
-      setWebCollections([...webCollections, data[0]]);
-      setNewLinkTitle('');
-      setNewLinkUrl('');
-      setNewLinkDescription('');
-      alert('Link web berhasil ditambahkan!');
+      setCollections([...collections, data[0]]);
+      setNewCollectionTitle('');
+      setNewCollectionDescription(''); // Tetap reset state input form
+      alert('Koleksi web berhasil ditambahkan!');
     } catch (err) {
-      console.error("Error adding web link:", err.message);
-      setError("Gagal menambahkan link: " + err.message);
+      console.error("Error adding web collection:", err.message);
+      setError("Gagal menambahkan koleksi: " + err.message);
     }
   };
 
-  // --- Fungsi Tambah Kategori ---
+  // --- Fungsi Tambah Kategori (tetap sama) ---
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!newCategoryName.trim()) {
@@ -149,13 +146,12 @@ function WebCollectionsPage({ session }) {
     }
   };
 
-  // --- Fungsi Hapus Koleksi Web ---
-  const handleDeleteWebLink = async (id, e) => {
-    // Hentikan event bubbling agar tidak memicu onClick pada div induk
-    e.stopPropagation(); 
-    if (!window.confirm("Apakah Anda yakin ingin menghapus link ini?")) return;
+  // --- Fungsi Hapus KOLEKSI INDUK ---
+  const handleDeleteCollection = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Apakah Anda yakin ingin menghapus koleksi ini? Semua item di dalamnya juga akan terhapus!")) return;
     if (!user) {
-      alert("Anda harus login untuk menghapus link.");
+      alert("Anda harus login untuk menghapus koleksi.");
       return;
     }
     try {
@@ -167,17 +163,17 @@ function WebCollectionsPage({ session }) {
 
       if (error) throw error;
 
-      setWebCollections(webCollections.filter(link => link.id !== id));
-      alert('Link web berhasil dihapus!');
+      setCollections(collections.filter(collectionItem => collectionItem.id !== id));
+      alert('Koleksi web berhasil dihapus!');
     } catch (err) {
-      console.error("Error deleting web link:", err.message);
-      setError("Gagal menghapus link: " + err.message);
+      console.error("Error deleting web collection:", err.message);
+      setError("Gagal menghapus koleksi: " + err.message);
     }
   };
 
-  // --- Fungsi Hapus Kategori ---
+  // --- Fungsi Hapus Kategori (tetap sama, tapi refresh collections) ---
   const handleDeleteCategory = async (id) => {
-    if (!window.confirm("Menghapus kategori ini akan membuat link yang terkait tidak memiliki kategori. Lanjutkan?")) return;
+    if (!window.confirm("Menghapus kategori ini akan membuat koleksi yang terkait tidak memiliki kategori. Lanjutkan?")) return;
     if (!user) {
       alert("Anda harus login untuk menghapus kategori.");
       return;
@@ -205,7 +201,7 @@ function WebCollectionsPage({ session }) {
         `)
         .eq('user_id', user.id);
       if (updateError) throw updateError;
-      setWebCollections(updatedCollections);
+      setCollections(updatedCollections);
 
       alert('Kategori berhasil dihapus!');
     } catch (err) {
@@ -214,8 +210,8 @@ function WebCollectionsPage({ session }) {
     }
   };
 
-  const handleCardClick = (linkId) => {
-    navigate(`/web-collections/${linkId}`);
+  const handleCardClick = (collectionId) => {
+    navigate(`/web-collections/${collectionId}`);
   };
 
   if (loading) {
@@ -270,49 +266,37 @@ function WebCollectionsPage({ session }) {
         )}
       </div>
 
-      {/* Form Tambah Koleksi Web */}
+      {/* Form Tambah KOLEKSI INDUK Baru */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Tambah Link Web Baru</h2>
-        <form onSubmit={handleAddWebLink} className="space-y-4">
+        <h2 className="text-2xl font-semibold mb-4">Tambah Koleksi Web Baru</h2>
+        <form onSubmit={handleAddCollection} className="space-y-4">
           <div>
-            <label htmlFor="linkTitle" className="block text-sm font-medium mb-1">Judul Link</label>
+            <label htmlFor="collectionTitle" className="block text-sm font-medium mb-1">Judul Koleksi</label>
             <input
               type="text"
-              id="linkTitle"
-              value={newLinkTitle}
-              onChange={(e) => setNewLinkTitle(e.target.value)}
-              placeholder="Judul website atau artikel"
+              id="collectionTitle"
+              value={newCollectionTitle}
+              onChange={(e) => setNewCollectionTitle(e.target.value)}
+              placeholder="Misal: Tutorial React Terbaik"
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div>
-            <label htmlFor="linkUrl" className="block text-sm font-medium mb-1">URL (Link)</label>
-            <input
-              type="url"
-              id="linkUrl"
-              value={newLinkUrl}
-              onChange={(e) => setNewLinkUrl(e.target.value)}
-              placeholder="https://contoh.com/artikel"
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="linkDescription" className="block text-sm font-medium mb-1">Deskripsi (Opsional)</label>
+            <label htmlFor="collectionDescription" className="block text-sm font-medium mb-1">Deskripsi Koleksi (Opsional)</label>
             <textarea
-              id="linkDescription"
-              value={newLinkDescription}
-              onChange={(e) => setNewLinkDescription(e.target.value)}
-              placeholder="Penjelasan singkat tentang link ini..."
+              id="collectionDescription"
+              value={newCollectionDescription}
+              onChange={(e) => setNewCollectionDescription(e.target.value)}
+              placeholder="Penjelasan singkat tentang koleksi ini..."
               rows="3"
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             ></textarea>
           </div>
           <div>
-            <label htmlFor="linkCategory" className="block text-sm font-medium mb-1">Kategori</label>
+            <label htmlFor="collectionCategory" className="block text-sm font-medium mb-1">Kategori Koleksi</label>
             <select
-              id="linkCategory"
+              id="collectionCategory"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -332,49 +316,47 @@ function WebCollectionsPage({ session }) {
             className="w-full px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md transition-colors"
             disabled={categories.length === 0}
           >
-            Tambah Link Koleksi
+            Tambah Koleksi Web
           </button>
         </form>
       </div>
 
-      {/* Daftar Koleksi Web */}
+      {/* Daftar Koleksi Web Induk */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h2 className="text-2xl font-semibold mb-4">Daftar Koleksi Web Anda</h2>
-        {webCollections.length === 0 ? (
-          <p className="text-center text-gray-600 dark:text-gray-400">Belum ada link koleksi web. Tambahkan yang pertama di atas!</p>
+        {collections.length === 0 ? (
+          <p className="text-center text-gray-600 dark:text-gray-400">Belum ada koleksi web. Tambahkan yang pertama di atas!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {webCollections.map((link) => (
-              // Mengubah div menjadi bisa diklik
+            {collections.map((collectionItem) => (
               <div
-                key={link.id}
-                onClick={() => handleCardClick(link.id)} // Menambahkan onClick
-                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 flex flex-col justify-between 
-                           cursor-pointer hover:shadow-lg transition-shadow duration-200" // Menambahkan kelas untuk kursor dan hover
+                key={collectionItem.id}
+                onClick={() => handleCardClick(collectionItem.id)}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 flex flex-col justify-between
+                           cursor-pointer hover:shadow-lg transition-shadow duration-200"
               >
                 <div>
                   <h3 className="text-xl font-semibold mb-2 flex items-center justify-between">
-                    {/* Mengubah link asli agar hanya URL, tidak lagi menavigasi ke sana dari title */}
                     <span className="text-gray-900 dark:text-gray-100"> 
-                      {link.title}
+                      {collectionItem.title}
                     </span>
                     <button
-                      onClick={(e) => handleDeleteWebLink(link.id, e)} // Meneruskan event 'e'
-                      className="text-red-500 hover:text-red-700 ml-2 z-10" // Menambahkan z-10 agar tombol lebih mudah diklik
-                      title="Hapus Link"
+                      onClick={(e) => handleDeleteCollection(collectionItem.id, e)}
+                      className="text-red-500 hover:text-red-700 ml-2 z-10"
+                      title="Hapus Koleksi (dan semua item di dalamnya)"
                     >
                       &times;
                     </button>
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Kategori: <span className="font-medium">{link.web_categories ? link.web_categories.name : 'Tidak Terkategori'}</span>
+                    Kategori: <span className="font-medium">{collectionItem.web_categories ? collectionItem.web_categories.name : 'Tidak Terkategori'}</span>
                   </p>
-                  {link.description && (
-                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-3">{link.description}</p>
+                  {collectionItem.description && (
+                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-3">{collectionItem.description}</p>
                   )}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Ditambahkan: {new Date(link.created_at).toLocaleDateString()}
+                  Ditambahkan: {new Date(collectionItem.created_at).toLocaleDateString()}
                 </div>
               </div>
             ))}
