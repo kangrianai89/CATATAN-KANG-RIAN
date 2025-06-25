@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate, Link, useParams } from 'react-router-dom'; // Tambahkan useParams
+import { useNavigate, Link, useParams } from 'react-router-dom';
+
+// Icon untuk tombol "Buat Catatan Baru"
+const PlusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+);
 
 const PinIcon = ({ isPinned }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -8,23 +13,23 @@ const PinIcon = ({ isPinned }) => (
 
 function DashboardPage({ session }) {
   const navigate = useNavigate();
-  const { categoryId } = useParams(); // Mengambil categoryId dari URL
+  const { categoryId } = useParams();
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [notes, setNotes] = useState([]);
-  const [newNoteTitle, setNewNoteTitle] = useState('');
+  // newNoteTitle tidak lagi dibutuhkan sebagai state, karena akan langsung navigasi
+  // const [newNoteTitle, setNewNoteTitle] = useState(''); 
   const [categories, setCategories] = useState([]);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  // const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(''); // Tidak digunakan lagi, filter dari URL
-  const [searchTerm, setSearchTerm] = useState(''); // State untuk pencarian
+  // newCategoryName tidak lagi dibutuhkan sebagai state, karena form kategori dihapus
+  // const [newCategoryName, setNewCategoryName] = useState(''); 
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  // Perbarui useEffect untuk memanggil fetchNotes dengan categoryId dari URL dan searchTerm
   useEffect(() => {
     fetchNotes(categoryId, searchTerm);
-  }, [categoryId, searchTerm]); // Dependency pada categoryId dan searchTerm
+  }, [categoryId, searchTerm]);
 
   const fetchNotes = async (currentCategoryId, currentSearchTerm) => {
     setLoadingNotes(true);
@@ -35,14 +40,12 @@ function DashboardPage({ session }) {
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false });
       
-      // Filter berdasarkan kategori dari URL
       if (currentCategoryId) {
         query = query.eq('category_id', currentCategoryId);
       }
       
-      // Filter berdasarkan search term
       if (currentSearchTerm) {
-        query = query.ilike('title', `%${currentSearchTerm}%`); // Pencarian tidak case-sensitive
+        query = query.ilike('title', `%${currentSearchTerm}%`);
       }
       
       const { data, error } = await query;
@@ -65,32 +68,33 @@ function DashboardPage({ session }) {
     }
   };
 
-  const handleCreateCategory = async (e) => {
-    e.preventDefault();
-    if (!newCategoryName.trim()) return;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from('categories').insert({ name: newCategoryName, user_id: user.id }).select().single();
-      if (error) throw error;
-      setCategories([...categories, data].sort((a, b) => a.name.localeCompare(b.name)));
-      setNewCategoryName('');
-    } catch (error) {
-      alert(error.message);
-    }
-  };
+  // Fungsi handleCreateCategory dihapus karena formnya dihapus
+  // const handleCreateCategory = async (e) => {
+  //   e.preventDefault();
+  //   if (!newCategoryName.trim()) return;
+  //   try {
+  //     const { data: { user } } = await supabase.auth.getUser();
+  //     const { data, error } = await supabase.from('categories').insert({ name: newCategoryName, user_id: user.id }).select().single();
+  //     if (error) throw error;
+  //     setCategories([...categories, data].sort((a, b) => a.name.localeCompare(b.name)));
+  //     setNewCategoryName('');
+  //   } catch (error) {
+  //     alert(error.message);
+  //   }
+  // };
   
-  const handleCreateNote = async (e) => {
-    e.preventDefault();
-    if (!newNoteTitle.trim()) return;
+  // Fungsi untuk membuat catatan baru (tanpa input judul awal)
+  const handleCreateNewNote = async () => { // Nama fungsi diubah agar lebih jelas
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from('notes').insert({ title: newNoteTitle, user_id: user.id, sections: [{ title: 'Bagian Pertama', content: '' }] }).select().single();
+      // Buat catatan dengan judul default (misal: 'Catatan Baru') atau kosong
+      const { data, error } = await supabase.from('notes').insert({ 
+        title: 'Catatan Baru', // Judul default
+        user_id: user.id, 
+        sections: [{ title: 'Bagian Pertama', content: '' }] 
+      }).select().single();
       if (error) throw error;
-      // Setelah membuat catatan, kita bisa langsung navigasi ke halaman editnya
-      // Atau, jika ingin tetap di dashboard, refresh notes dengan filter/search saat ini
-      // navigate(`/note/${data.id}/edit`);
-      setNewNoteTitle(''); // Kosongkan input
-      fetchNotes(categoryId, searchTerm); // Refresh catatan dengan filter/search yang aktif
+      navigate(`/note/${data.id}/edit`); // Langsung navigasi ke halaman edit
     } catch (error) {
       alert(error.message);
     }
@@ -112,7 +116,7 @@ function DashboardPage({ session }) {
     try {
         const { data, error } = await supabase.from('notes').update({ pinned: !currentStatus }).eq('id', noteId).select().single();
         if (error) throw error;
-        fetchNotes(categoryId, searchTerm); // Panggil fetchNotes dengan filter/search saat ini
+        fetchNotes(categoryId, searchTerm);
     } catch (error) {
       alert('Gagal memperbarui pin: ' + error.message);
     }
@@ -130,7 +134,13 @@ function DashboardPage({ session }) {
           <h1 className="text-3xl font-bold dark:text-white">Dashboard Catatan</h1>
           <p className="text-gray-600 dark:text-gray-400">Login sebagai: {session.user.email}</p>
         </div>
-        <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 w-full sm:w-auto">Logout</button>
+        <div className="flex gap-2"> {/* Wrapper untuk tombol Logout dan Buat Catatan Baru */}
+          <button onClick={handleCreateNewNote} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2">
+            <PlusIcon />
+            <span>Buat Catatan Baru</span>
+          </button>
+          <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Logout</button>
+        </div>
       </div>
       
       {/* Bagian Filter Kategori & Pencarian */}
@@ -170,8 +180,8 @@ function DashboardPage({ session }) {
           </div>
         </div>
 
-        {/* Form Tambah Kategori (tetap di sini untuk kemudahan manajemen) */}
-        <hr className="my-4 border-gray-200 dark:border-gray-700" />
+        {/* Form Tambah Kategori dihapus dari sini */}
+        {/* <hr className="my-4 border-gray-200 dark:border-gray-700" />
         <h3 className="text-lg font-semibold mb-2 dark:text-white">Tambah Kategori Baru</h3>
         <form onSubmit={handleCreateCategory} className="flex gap-2">
           <input
@@ -183,11 +193,11 @@ function DashboardPage({ session }) {
             required
           />
           <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Tambah</button>
-        </form>
+        </form> */}
       </div>
 
       {/* Bagian "Catatan Anda" (Daftar Catatan) */}
-      <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+      <div className="p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700"> {/* Menghapus mb-8 karena ini akan menjadi yang terakhir */}
         <h2 className="text-2xl font-semibold mb-4 dark:text-white">Catatan Anda {categoryId && `di Kategori: ${categories.find(c => c.id === categoryId)?.name || 'Tidak Ditemukan'}`}</h2>
         {loadingNotes ? <p className="dark:text-gray-400">Memuat catatan...</p> : notes.length === 0 ? <p className="dark:text-gray-400">Tidak ada catatan.</p> : (
           <ul className="space-y-4">
@@ -220,8 +230,8 @@ function DashboardPage({ session }) {
         )}
       </div>
 
-      {/* Bagian "Buat Catatan Baru" */}
-      <div className="p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+      {/* Bagian "Buat Catatan Baru" (Form lama yang dihapus) */}
+      {/* <div className="p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <form onSubmit={handleCreateNote}>
           <h2 className="text-xl font-semibold mb-2 dark:text-white">Buat Catatan Baru</h2>
           <div className="flex flex-col sm:flex-row items-center gap-2">
@@ -229,7 +239,7 @@ function DashboardPage({ session }) {
             <button type="submit" className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Buat & Edit</button>
           </div>
         </form>
-      </div>
+      </div> */}
     </>
   );
 }
