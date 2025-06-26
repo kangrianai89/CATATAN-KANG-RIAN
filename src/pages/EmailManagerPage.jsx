@@ -5,12 +5,14 @@ function EmailManagerPage() {
   const [loading, setLoading] = useState(true);
   const [emails, setEmails] = useState([]);
   
+  // State untuk form input
   const [newEmail, setNewEmail] = useState('');
   const [newNickname, setNewNickname] = useState('');
   const [newType, setNewType] = useState('Biasa');
+  const [newKeterangan, setNewKeterangan] = useState(''); // State baru untuk keterangan
 
+  // State untuk filter dan notifikasi
   const [typeFilter, setTypeFilter] = useState('Semua');
-  
   const [copySuccess, setCopySuccess] = useState('');
 
   useEffect(() => {
@@ -44,15 +46,18 @@ function EmailManagerPage() {
                 email_address: newEmail,
                 nickname: newNickname,
                 account_type: newType,
+                keterangan: newKeterangan, // Kirim data keterangan
                 user_id: user.id
             })
             .select()
             .single();
         if (error) throw error;
         setEmails([data, ...emails]);
+        // Reset semua form input
         setNewEmail('');
         setNewNickname('');
         setNewType('Biasa');
+        setNewKeterangan('');
     } catch (error) {
         alert("Gagal menambah email: " + error.message);
     }
@@ -70,10 +75,33 @@ function EmailManagerPage() {
     }
   };
 
-  // --- FUNGSI BARU HANYA UNTUK MENYALIN ---
+  // --- FUNGSI BARU UNTUK CHECKBOX ---
+  const handleToggleCheck = async (id, currentStatus) => {
+    // Update UI secara optimis untuk respons cepat
+    const updatedEmails = emails.map(email =>
+        email.id === id ? { ...email, is_checked: !currentStatus } : email
+    );
+    setEmails(updatedEmails);
+
+    // Kirim perubahan ke database di latar belakang
+    try {
+        const { error } = await supabase
+            .from('email_accounts')
+            .update({ is_checked: !currentStatus })
+            .eq('id', id);
+        if (error) {
+            // Jika gagal, kembalikan state UI ke semula dan beri notifikasi
+            alert("Gagal menyimpan perubahan: " + error.message);
+            setEmails(emails); // Kembalikan ke state awal sebelum update
+        }
+    } catch (error) {
+        alert("Gagal menyimpan perubahan: " + error.message);
+        setEmails(emails);
+    }
+  };
+
   const handleCopy = (emailAddress) => {
     const url = `https://mail.google.com/mail/u/?authuser=${emailAddress}`;
-    
     const textArea = document.createElement("textarea");
     textArea.value = url;
     textArea.style.position = "fixed";
@@ -98,6 +126,7 @@ function EmailManagerPage() {
     <>
       <h1 className="text-3xl font-bold mb-8 dark:text-white">Manajer Email</h1>
 
+      {/* Form Tambah Email */}
       <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <form onSubmit={handleAddEmail} className="space-y-4">
           <h2 className="text-xl font-semibold dark:text-white">Tambah Akun Email Baru</h2>
@@ -110,10 +139,19 @@ function EmailManagerPage() {
               <option value="Flow">Flow</option>
             </select>
           </div>
+          {/* Input Keterangan Baru */}
+          <textarea
+            placeholder="Keterangan (Opsional)"
+            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            value={newKeterangan}
+            onChange={(e) => setNewKeterangan(e.target.value)}
+            rows="2"
+          ></textarea>
           <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Tambah ke Daftar</button>
         </form>
       </div>
 
+      {/* Daftar Email */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold dark:text-white">Daftar Email Tersimpan</h2>
@@ -129,22 +167,32 @@ function EmailManagerPage() {
             <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow">
                 <thead>
                     <tr className="border-b dark:border-gray-700">
-                        <th className="text-left p-3 px-5 dark:text-gray-200">Email</th>
+                        <th className="p-3 w-12 text-center dark:text-gray-200">✓</th>
+                        <th className="text-left p-3 px-5 dark:text-gray-200">Email & Keterangan</th>
                         <th className="text-left p-3 px-5 dark:text-gray-200">Tipe</th>
                         <th className="text-right p-3 px-5 dark:text-gray-200">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                 {loading ? (
-                    <tr><td colSpan="3" className="p-5 text-center dark:text-gray-400">Memuat...</td></tr>
+                    <tr><td colSpan="4" className="p-5 text-center dark:text-gray-400">Memuat...</td></tr>
                 ) : filteredEmails.length === 0 ? (
-                    <tr><td colSpan="3" className="p-5 text-center dark:text-gray-400">Tidak ada email yang cocok.</td></tr>
+                    <tr><td colSpan="4" className="p-5 text-center dark:text-gray-400">Tidak ada email yang cocok.</td></tr>
                 ) : (
                     filteredEmails.map(email => (
-                        <tr key={email.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <tr key={email.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${email.is_checked ? 'bg-green-50 dark:bg-green-900/30' : ''}`}>
+                            <td className="p-3 text-center">
+                                <input
+                                    type="checkbox"
+                                    className="h-5 w-5 rounded text-blue-500 focus:ring-blue-500 cursor-pointer"
+                                    checked={email.is_checked || false}
+                                    onChange={() => handleToggleCheck(email.id, email.is_checked)}
+                                />
+                            </td>
                             <td className="p-3 px-5">
-                                <span className="text-blue-500 font-semibold">{email.email_address}</span>
-                                {email.nickname && <p className="text-sm text-gray-500 dark:text-gray-400">{email.nickname}</p>}
+                                <span className={`font-semibold ${email.is_checked ? 'line-through text-gray-500' : 'text-blue-500'}`}>{email.email_address}</span>
+                                {email.nickname && <p className={`text-sm ${email.is_checked ? 'line-through text-gray-500' : 'text-gray-500 dark:text-gray-400'}`}>{email.nickname}</p>}
+                                {email.keterangan && <p className={`mt-1 text-xs italic ${email.is_checked ? 'line-through text-gray-500' : 'text-gray-600 dark:text-gray-300'}`}>{email.keterangan}</p>}
                             </td>
                             <td className="p-3 px-5">
                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -155,8 +203,7 @@ function EmailManagerPage() {
                                     {email.account_type}
                                 </span>
                             </td>
-                            <td className="p-3 px-5 text-right flex justify-end gap-2">
-                                {/* Tombol hanya untuk Salin Link */}
+                            <td className="p-3 px-5 text-right flex justify-end items-center gap-2">
                                 <button onClick={() => handleCopy(email.email_address)} className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 w-28 text-center">
                                     {copySuccess === email.email_address ? 'Disalin!' : 'Salin Link'}
                                 </button>
