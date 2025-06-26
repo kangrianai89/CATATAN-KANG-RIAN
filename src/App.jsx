@@ -1,22 +1,26 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from './supabaseClient';
+
+// Import Halaman
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import DashboardPage from "./pages/DashboardPage";
+import DashboardPage from "./pages/DashboardPage"; // Halaman dashboard baru
+import NotesPage from "./pages/NotesPage"; // Halaman catatan yang sudah di-rename
 import NoteDetailPage from "./pages/NoteDetailPage";
+import NoteViewPage from './pages/NoteViewPage';
 import PlaygroundPage from './pages/PlaygroundPage';
 import AssetDetailPage from './pages/AssetDetailPage';
 import GeneratorListPage from './pages/GeneratorListPage';
 import BlueprintGenerator from './generators/BlueprintGenerator';
-import MainLayout from './components/MainLayout';
 import EmailManagerPage from './pages/EmailManagerPage';
 import ImageReaderPage from './pages/ImageReaderPage';
 import SettingsPage from './pages/SettingsPage';
-import NoteViewPage from './pages/NoteViewPage';
 import WebCollectionsPage from './pages/WebCollectionsPage'; 
 import WebCollectionDetailPage from './pages/WebCollectionDetailPage';
 
+// Import Layout
+import MainLayout from './components/MainLayout';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 
 
@@ -49,16 +53,21 @@ function App() {
     <ThemeProvider>
         <BrowserRouter>
           <Routes>
+            {/* Rute Publik */}
             <Route path="/" element={!session ? <LoginPage /> : <Navigate to="/dashboard" />} />
             <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+            
+            {/* Rute Terlindungi */}
             <Route element={<ProtectedLayout session={session} />}>
               <Route path="/dashboard" element={<DashboardPage session={session} />} />
-              {/* --- Rute baru untuk Dashboard dengan filter kategori --- */}
-              <Route path="/dashboard/category/:categoryId" element={<DashboardPage session={session} />} />
               
+              {/* Rute untuk Catatan */}
+              <Route path="/notes" element={<NotesPage session={session} />} />
+              <Route path="/notes/category/:categoryId" element={<NotesPage session={session} />} />
               <Route path="/note/:id" element={<NoteViewPage />} />
               <Route path="/note/:id/edit" element={<NoteDetailPage />} />
 
+              {/* Rute Lainnya */}
               <Route path="/playground" element={<PlaygroundPage />} />
               <Route path="/asset/:id" element={<AssetDetailPage />} />
               <Route path="/generators" element={<GeneratorListPage />} />
@@ -69,7 +78,6 @@ function App() {
               
               <Route path="/web-collections" element={<WebCollectionsPage session={session} />} />
               <Route path="/web-collections/:id" element={<WebCollectionDetailPage session={session} />} />
-
             </Route>
           </Routes>
         </BrowserRouter>

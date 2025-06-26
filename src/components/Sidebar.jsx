@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
-// Komponen Ikon
+// --- KOMPONEN IKON (SAYA TAMBAHKAN IKON DASHBOARD BARU) ---
+const DashboardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 const NoteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>;
 const AssetIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>;
 const GeneratorIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
@@ -52,7 +53,13 @@ function Sidebar({ isOpen, setSidebarOpen }) {
       <h2 className="text-2xl font-bold mb-8">CATATAN KANG RIAN</h2>
       <nav className="flex-1">
         <ul className="space-y-1">
-          <li><NavLink to="/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><NoteIcon /><span>Catatan</span></NavLink></li>
+          {/* --- Link Dashboard Baru --- */}
+          <li><NavLink to="/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`} end><DashboardIcon /><span>Dashboard</span></NavLink></li>
+          <li className="pt-2"><div className="border-t border-gray-700"></div></li>
+          
+          {/* --- Link Catatan yang diperbarui --- */}
+          <li><NavLink to="/notes" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><NoteIcon /><span>Catatan</span></NavLink></li>
+          
           <li><NavLink to="/playground" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><AssetIcon /><span>Koleksi Aset</span></NavLink></li>
           <li><NavLink to="/generators" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><GeneratorIcon /><span>Koleksi Generator</span></NavLink></li>
           <li><NavLink to="/web-collections" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><WebCollectionIcon /><span>Koleksi Web</span></NavLink></li>
