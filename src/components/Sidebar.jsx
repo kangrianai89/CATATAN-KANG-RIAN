@@ -12,78 +12,74 @@ const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" he
 const SunIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>;
 const MoonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
 const InstallIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>;
-
-// Ikon baru untuk Koleksi Web (buku/bookmark)
 const WebCollectionIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M10 10H17"/><path d="M10 14H17"/></svg>;
 
 
 function Sidebar({ isOpen, setSidebarOpen }) {
-  const { theme, toggleTheme } = useTheme();
-  const [installPrompt, setInstallPrompt] = useState(null);
+  const { theme, toggleTheme } = useTheme();
+  const [installPrompt, setInstallPrompt] = useState(null);
 
-  const linkClass = "flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-700 transition-colors";
-  const activeLinkClass = "bg-gray-600 font-semibold";
+  const linkClass = "flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-700 transition-colors";
+  const activeLinkClass = "bg-gray-600 font-semibold";
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (event) => {
-      event.preventDefault();
-      setInstallPrompt(event);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-  
-  const handleLinkClick = () => {
-    if (window.innerWidth < 768) { 
-        setSidebarOpen(false);
-    }
-  };
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+  
+  const handleLinkClick = () => {
+    if (window.innerWidth < 768) { 
+        setSidebarOpen(false);
+    }
+  };
 
-  const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    const result = await installPrompt.prompt();
-    console.log('Install prompt result:', result);
-    setInstallPrompt(null);
-    setSidebarOpen(false);
-  };
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    const result = await installPrompt.prompt();
+    console.log('Install prompt result:', result);
+    setInstallPrompt(null);
+    setSidebarOpen(false);
+  };
 
-  return (
-    <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-800 text-white p-4 flex flex-col transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}>
-      <h2 className="text-2xl font-bold mb-8">DevStudy Hub</h2>
-      <nav className="flex-1">
-        <ul className="space-y-1">
-          <li><NavLink to="/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><NoteIcon /><span>Catatan</span></NavLink></li>
-          <li><NavLink to="/playground" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><AssetIcon /><span>Koleksi Aset</span></NavLink></li>
-          <li><NavLink to="/generators" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><GeneratorIcon /><span>Koleksi Generator</span></NavLink></li>
-            {/* --- Menu Koleksi Web Baru --- */}
-          <li><NavLink to="/web-collections" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><WebCollectionIcon /><span>Koleksi Web</span></NavLink></li>
-          {/* Menu Koleksi Web telah dihapus dari sini */}
-          <li className="pt-2"><div className="border-t border-gray-700"></div></li>
-          <li><NavLink to="/email-manager" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><EmailIcon /><span>Manajer Email</span></NavLink></li>
-          <li><NavLink to="/image-reader" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><ScanIcon /><span>Ekstraktor Teks</span></NavLink></li>
-        </ul>
-      </nav>
-      
-      <div className="mt-4 space-y-2">
-        {installPrompt && (
-          <button onClick={handleInstallClick} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-green-500 hover:bg-green-600">
-            <InstallIcon />
-            <span>Install Aplikasi</span>
-          </button>
-        )}
-        <NavLink to="/settings" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}>
-            <SettingsIcon />
-            <span>Pengaturan Akun</span>
-        </NavLink>
-        <button onClick={toggleTheme} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-700 hover:bg-gray-600">
-            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-            <span>Mode {theme === 'light' ? 'Gelap' : 'Terang'}</span>
-        </button>
-      </div>
-    </div>
-  );
+  return (
+    <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-800 text-white p-4 flex flex-col transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}>
+      <h2 className="text-2xl font-bold mb-8">CATATAN KANG RIAN</h2>
+      <nav className="flex-1">
+        <ul className="space-y-1">
+          <li><NavLink to="/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><NoteIcon /><span>Catatan</span></NavLink></li>
+          <li><NavLink to="/playground" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><AssetIcon /><span>Koleksi Aset</span></NavLink></li>
+          <li><NavLink to="/generators" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><GeneratorIcon /><span>Koleksi Generator</span></NavLink></li>
+          <li><NavLink to="/web-collections" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><WebCollectionIcon /><span>Koleksi Web</span></NavLink></li>
+          <li className="pt-2"><div className="border-t border-gray-700"></div></li>
+          <li><NavLink to="/email-manager" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><EmailIcon /><span>Manajer Email</span></NavLink></li>
+          <li><NavLink to="/image-reader" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}><ScanIcon /><span>Ekstraktor Teks</span></NavLink></li>
+        </ul>
+      </nav>
+      
+      <div className="mt-4 space-y-2">
+        {installPrompt && (
+          <button onClick={handleInstallClick} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-green-500 hover:bg-green-600">
+            <InstallIcon />
+            <span>Install Aplikasi</span>
+          </button>
+        )}
+        <NavLink to="/settings" onClick={handleLinkClick} className={({ isActive }) => `${linkClass} ${isActive ? activeLinkClass : ''}`}>
+            <SettingsIcon />
+            <span>Pengaturan Akun</span>
+        </NavLink>
+        <button onClick={toggleTheme} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gray-700 hover:bg-gray-600">
+            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+            <span>Mode {theme === 'light' ? 'Gelap' : 'Terang'}</span>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default Sidebar;

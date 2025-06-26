@@ -12,9 +12,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
       manifest: {
-        name: 'DevStudy Hub',
-        short_name: 'DevStudy',
-        description: 'Platform pencatatan modular dan utilitas AI untuk developer.',
+        name: 'CATATAN KANG RIAN', // <-- DIUBAH
+        short_name: 'Catatan KR', // <-- DIUBAH
+        description: 'Aplikasi pencatatan, koleksi, dan utilitas pribadi.', // <-- DIUBAH
         start_url: '.',
         display: 'standalone',
         theme_color: '#1F2937',
@@ -22,12 +22,12 @@ export default defineConfig({
         screenshots: [
           {
             src: 'screenshot1.png',
-            sizes: '597x1280', // <-- DIUBAH MENJADI UKURAN BARU YANG BENAR
+            sizes: '597x1280', 
             type: 'image/png'
           },
           {
             src: 'screenshot2.png',
-            sizes: '592x1280', // <-- DIUBAH MENJADI UKURAN BARU YANG BENAR
+            sizes: '592x1280',
             type: 'image/png'
           }
         ],
