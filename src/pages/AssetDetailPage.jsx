@@ -1,5 +1,5 @@
 // File: src/pages/AssetDetailPage.jsx
-// PERBAIKAN: Mengganti alert error dengan console.error untuk debugging yang lebih detail.
+// PERBAIKAN FINAL: Memastikan semua fungsi dan kode lengkap.
 
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -19,29 +19,32 @@ function AssetDetailPage() {
   const [isEditing, setIsEditing] = useState(isNewAsset);
   const [isSaving, setIsSaving] = useState(false);
 
+  // State untuk form
   const [editTitle, setEditTitle] = useState('');
   const [editLink, setEditLink] = useState('');
   const [editCode, setEditCode] = useState('');
   const [editDescription, setEditDescription] = useState(''); 
   const [newImageFile, setNewImageFile] = useState(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState('');
-  const [allCategories, setAllCategories] = useState([]);
+  const [selectedAssetCategoryId, setSelectedAssetCategoryId] = useState('');
+  const [allAssetCategories, setAllAssetCategories] = useState([]);
   
   const [editorTheme, setEditorTheme] = useState('light');
 
+  // Mengambil daftar kategori aset
   useEffect(() => {
-    const fetchAllCategories = async () => {
+    const fetchAssetCategories = async () => {
         try {
-            const { data, error } = await supabase.from('categories').select('id, name').order('name');
+            const { data, error } = await supabase.from('asset_categories').select('id, name').order('name');
             if (error) throw error;
-            setAllCategories(data || []);
+            setAllAssetCategories(data || []);
         } catch (error) {
-            console.error("Gagal memuat daftar kategori:", error);
+            console.error("Gagal memuat daftar kategori aset:", error);
         }
     };
-    fetchAllCategories();
+    fetchAssetCategories();
   }, []);
 
+  // Mengambil data aset tunggal atau menyiapkan form baru
   useEffect(() => {
     setEditorTheme(localStorage.getItem('theme') === 'dark' ? 'vs-dark' : 'light');
 
@@ -49,14 +52,14 @@ function AssetDetailPage() {
       if (!isNewAsset) {
         setLoading(true);
         try {
-          const { data, error } = await supabase.from('pages').select('*, categories(id, name)').eq('id', id).single(); 
+          const { data, error } = await supabase.from('pages').select('*').eq('id', id).single(); 
           if (error) throw error;
           setAsset(data);
           setEditTitle(data.title || '');
           setEditLink(data.external_link || '');
           setEditCode(data.code || '');
           setEditDescription(data.description || '');
-          setSelectedCategoryId(data.category_id || '');
+          setSelectedAssetCategoryId(data.asset_category_id || '');
           if (data && data.image_path) {
             const { data: urlData } = supabase.storage.from('asset-images').getPublicUrl(data.image_path);
             if (urlData) setImageUrl(urlData.publicUrl);
@@ -77,16 +80,11 @@ function AssetDetailPage() {
           setEditLink(draft.link || '');
           setEditCode(draft.code || '');
           setEditDescription(draft.description || '');
-          setSelectedCategoryId(draft.categoryId || '');
+          setSelectedAssetCategoryId(draft.assetCategoryId || '');
         } else {
-          setEditTitle('');
-          setEditLink('');
-          setEditCode('');
-          setEditDescription('');
-          setSelectedCategoryId('');
+          setEditTitle(''); setEditLink(''); setEditCode(''); setEditDescription(''); setSelectedAssetCategoryId('');
         }
-        setNewImageFile(null);
-        setImageUrl(null);
+        setNewImageFile(null); setImageUrl(null);
       }
     };
     fetchAsset();
@@ -96,6 +94,7 @@ function AssetDetailPage() {
     return () => window.removeEventListener('themeChanged', handleThemeChange);
   }, [id, navigate, isNewAsset]);
 
+  // Menyimpan draf ke session storage
   useEffect(() => {
     if (isNewAsset) {
       const draft = {
@@ -103,12 +102,13 @@ function AssetDetailPage() {
         link: editLink,
         code: editCode,
         description: editDescription,
-        categoryId: selectedCategoryId,
+        assetCategoryId: selectedAssetCategoryId,
       };
       sessionStorage.setItem(NEW_ASSET_DRAFT_KEY, JSON.stringify(draft));
     }
-  }, [editTitle, editLink, editCode, editDescription, selectedCategoryId, isNewAsset]);
+  }, [editTitle, editLink, editCode, editDescription, selectedAssetCategoryId, isNewAsset]);
 
+  // Fungsi untuk handle pemilihan & kompresi file
   const handleFileSelected = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -124,23 +124,21 @@ function AssetDetailPage() {
     }
   };
 
+  // Fungsi untuk menyimpan aset (baru atau update)
   const handleSaveAsset = async (e) => {
     e.preventDefault();
-    if (!selectedCategoryId) {
+    if (!selectedAssetCategoryId) {
         alert("Harap pilih kategori untuk aset ini.");
         return;
     }
     setIsSaving(true);
     let newImagePath = asset?.image_path || null;
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Anda harus login untuk menyimpan aset.");
 
       if (newImageFile) {
-        if (!isNewAsset && asset?.image_path) {
-          await supabase.storage.from('asset-images').remove([asset.image_path]);
-        }
+        if (!isNewAsset && asset?.image_path) { await supabase.storage.from('asset-images').remove([asset.image_path]); }
         const fileExt = newImageFile.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage.from('asset-images').upload(fileName, newImageFile);
@@ -155,32 +153,23 @@ function AssetDetailPage() {
         description: editDescription, 
         image_path: newImagePath,
         user_id: user.id,
-        category_id: selectedCategoryId,
+        asset_category_id: selectedAssetCategoryId,
       };
 
-      let response;
-      let error;
-      if (isNewAsset) {
-        const result = await supabase.from('pages').insert(dataToSave).select().single();
-        response = result.data;
-        error = result.error;
-      } else {
-        const result = await supabase.from('pages').update(dataToSave).eq('id', id).select().single();
-        response = result.data;
-        error = result.error;
-      }
+      const { data, error } = isNewAsset
+        ? await supabase.from('pages').insert(dataToSave).select().single()
+        : await supabase.from('pages').update(dataToSave).eq('id', id).select().single();
+
       if (error) throw error;
       
       alert(`Aset berhasil di${isNewAsset ? 'buat' : 'perbarui'}!`);
       if (isNewAsset) {
         sessionStorage.removeItem(NEW_ASSET_DRAFT_KEY);
-        navigate(`/asset/${response.id}`);
+        navigate(`/asset/${data.id}`);
       } else {
         window.location.reload();
       }
-      
     } catch (error) {
-      // --- PERUBAHAN ADA DI SINI ---
       console.error("GAGAL MENYIMPAN ASET (DETAIL LENGKAP):", error);
       alert(`Gagal menyimpan aset. Cek console (F12) untuk detail. Pesan: ${error.message}`);
     } finally {
@@ -188,6 +177,7 @@ function AssetDetailPage() {
     }
   };
 
+  // Fungsi untuk membatalkan edit
   const handleCancelEdit = () => {
     setIsEditing(false);
     if (isNewAsset) {
@@ -198,7 +188,7 @@ function AssetDetailPage() {
         setEditLink(asset.external_link || '');
         setEditCode(asset.code || '');
         setEditDescription(asset.description || '');
-        setSelectedCategoryId(asset.category_id || '');
+        setSelectedAssetCategoryId(asset.asset_category_id || '');
         setNewImageFile(null);
     }
   };
@@ -206,60 +196,38 @@ function AssetDetailPage() {
   if (loading) return <div className="dark:text-white p-8">Memuat detail aset...</div>;
   if (!asset && !isNewAsset) return <div className="dark:text-white p-8">Aset tidak ditemukan.</div>;
 
+  // Fungsi untuk me-render konten utama form
   const renderContent = () => (
     <div className="space-y-8">
         {isEditing && (
             <div>
-                <label className="block text-lg font-semibold mb-2 dark:text-white">Kategori</label>
-                <select 
-                    value={selectedCategoryId} 
-                    onChange={(e) => setSelectedCategoryId(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
+                <label className="block text-lg font-semibold mb-2 dark:text-white">Kategori Aset</label>
+                <select value={selectedAssetCategoryId} onChange={(e) => setSelectedAssetCategoryId(e.target.value)} required className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="" disabled>-- Pilih Kategori --</option>
-                    {allCategories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
+                    {allAssetCategories.map(cat => ( <option key={cat.id} value={cat.id}>{cat.name}</option> ))}
                 </select>
             </div>
         )}
         <div>
             <label className="block text-lg font-semibold mb-2 dark:text-white">Link Generator</label>
-            {isEditing ? (
-            <input type="url" value={editLink} onChange={(e) => setEditLink(e.target.value)} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="https://contoh.com (Opsional)"/>
-            ) : (
-            asset?.external_link ? <a href={asset.external_link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">{asset.external_link}</a> : <p className="text-gray-500 italic">Tidak ada link.</p>
-            )}
+            {isEditing ? ( <input type="url" value={editLink} onChange={(e) => setEditLink(e.target.value)} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="https://contoh.com (Opsional)"/> ) : ( asset?.external_link ? <a href={asset.external_link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">{asset.external_link}</a> : <p className="text-gray-500 italic">Tidak ada link.</p> )}
         </div>
         <div className="flex flex-col md:flex-row md:items-start gap-8">
             <div className="md:w-1/2">
                 <h2 className="text-xl font-semibold mb-2 dark:text-white">Gambar</h2>
-                {(imageUrl || (newImageFile && URL.createObjectURL(newImageFile))) && !isEditing && (
-                    <img src={newImageFile ? URL.createObjectURL(newImageFile) : imageUrl} alt={asset?.title || "Gambar aset"} className="max-w-full rounded-lg shadow-md border" />
-                )}
-                {isEditing && (
-                    <>
-                    {(imageUrl || (newImageFile && URL.createObjectURL(newImageFile))) && <img src={newImageFile ? URL.createObjectURL(newImageFile) : imageUrl} alt="Gambar saat ini" className="w-48 h-auto rounded-lg shadow-md border mb-4" />}
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Ganti Gambar (Opsional)</label>
-                    <input type="file" id="edit-file-input" accept="image/png, image/jpeg, image/gif, image/webp" onChange={handleFileSelected} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800" />
-                    </>
-                )}
+                {(imageUrl || (newImageFile && URL.createObjectURL(newImageFile))) && !isEditing && ( <img src={newImageFile ? URL.createObjectURL(newImageFile) : imageUrl} alt={asset?.title || "Gambar aset"} className="max-w-full rounded-lg shadow-md border" /> )}
+                {isEditing && ( <> {(imageUrl || (newImageFile && URL.createObjectURL(newImageFile))) && <img src={newImageFile ? URL.createObjectURL(newImageFile) : imageUrl} alt="Gambar saat ini" className="w-48 h-auto rounded-lg shadow-md border mb-4" />} <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Ganti Gambar (Opsional)</label> <input type="file" id="edit-file-input" accept="image/png, image/jpeg, image/gif, image/webp" onChange={handleFileSelected} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800" /> </> )}
                 {!imageUrl && !newImageFile && !isEditing && <p className="text-gray-500 italic">Tidak ada gambar.</p>}
             </div>
             <div className="md:w-1/2">
-            <label className="block text-lg font-semibold mb-2 dark:text-white">Keterangan/Deskripsi</label>
-            {isEditing ? (
-                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px]" placeholder="Tambahkan keterangan..."></textarea>
-            ) : (
-                <textarea value={asset?.description || ''} readOnly className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px] resize-none" placeholder="Tidak ada keterangan."></textarea>
-            )}
+                <label className="block text-lg font-semibold mb-2 dark:text-white">Keterangan/Deskripsi</label>
+                {isEditing ? ( <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px]" placeholder="Tambahkan keterangan..."></textarea> ) : ( <textarea value={asset?.description || ''} readOnly className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[300px] resize-none" placeholder="Tidak ada keterangan."></textarea> )}
             </div>
         </div>
         <div>
             <label className="block text-lg font-semibold mb-2 dark:text-white">Cuplikan Kode HTML</label>
             <div className="border rounded-lg overflow-hidden dark:border-gray-600">
-            <Editor height="300px" language="html" value={isEditing ? editCode : (asset?.code || '')} onChange={isEditing ? (value) => setEditCode(value || '') : undefined} theme={editorTheme} options={{ readOnly: !isEditing, minimap: { enabled: false }, fontSize: 14 }} />
+                <Editor height="300px" language="html" value={isEditing ? editCode : (asset?.code || '')} onChange={isEditing ? (value) => setEditCode(value || '') : undefined} theme={editorTheme} options={{ readOnly: !isEditing, minimap: { enabled: false }, fontSize: 14 }} />
             </div>
         </div>
     </div>

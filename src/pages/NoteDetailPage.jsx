@@ -19,7 +19,7 @@ function NoteDetailPage() {
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-    const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+    // const [isDeletingCategory, setIsDeletingCategory] = useState(false); // DIHAPUS
     const [processingSectionIndex, setProcessingSectionIndex] = useState(null);
     const sessionStorageKey = `unsaved-note-${id}`;
     const lastActiveSectionKey = `last-active-section-${id}`;
@@ -34,7 +34,7 @@ function NoteDetailPage() {
     const removeSection = useCallback((index) => setSections(prev => { if (prev.length <= 1) { alert("Setidaknya harus ada satu bagian."); return prev; } if (window.confirm("Yakin ingin menghapus bagian ini?")) { return prev.filter((_, i) => i !== index); } return prev; }), []);
     const handleSetActiveSection = (sectionId) => sessionStorage.setItem(lastActiveSectionKey, sectionId);
     const handleCreateCategory = async () => { if (!newCategoryName.trim()) return; setIsCreatingCategory(true); try { const { data: { user } } = await supabase.auth.getUser(); const { data, error } = await supabase.from('categories').insert({ name: newCategoryName, user_id: user.id }).select().single(); if (error) throw error; const newCategories = [...categories, data].sort((a, b) => a.name.localeCompare(b.name)); setCategories(newCategories); setSelectedCategoryId(data.id); setNewCategoryName(''); setShowAddCategory(false); } catch (error) { alert(error.message); } finally { setIsCreatingCategory(false); } };
-    const handleDeleteCategory = async () => { if (!selectedCategoryId) return; const categoryToDelete = categories.find(c => c.id === selectedCategoryId); if (!categoryToDelete) return; if (window.confirm(`Yakin ingin menghapus kategori "${categoryToDelete.name}"?\nSemua catatan yang menggunakan kategori ini akan dilepaskan.\nTindakan ini tidak bisa dibatalkan.`)) { setIsDeletingCategory(true); try { await supabase.from('notes').update({ category_id: null }).eq('category_id', selectedCategoryId); await supabase.from('categories').delete().eq('id', selectedCategoryId); setCategories(categories.filter(c => c.id !== selectedCategoryId)); setSelectedCategoryId(''); alert(`Kategori "${categoryToDelete.name}" berhasil dihapus.`); } catch (error) { alert(error.message); } finally { setIsDeletingCategory(false); } } };
+    // const handleDeleteCategory = async () => { ... }; // DIHAPUS
     const handleUpdateNote = async (e) => { e.preventDefault(); try { const sectionsToSave = sections.map(({ id, ...rest }) => rest); const categoryToSave = selectedCategoryId === '' ? null : selectedCategoryId; await supabase.from('notes').update({ title, sections: sectionsToSave, updated_at: new Date().toISOString(), category_id: categoryToSave }).eq('id', id); sessionStorage.removeItem(sessionStorageKey); sessionStorage.removeItem(lastActiveSectionKey); sections.forEach(sec => sessionStorage.removeItem(`scroll-pos-${sec.id}`)); alert('Catatan berhasil diperbarui!'); } catch (error) { alert(error.message); } };
     const getApiKey = async () => { const { data: { user } } = await supabase.auth.getUser(); if (!user) throw new Error("Pengguna tidak terautentikasi."); const { data: profile } = await supabase.from('profiles').select('gemini_api_key').eq('id', user.id).single(); if (profile && profile.gemini_api_key) return profile.gemini_api_key; const mainApiKey = import.meta.env.VITE_GEMINI_API_KEY; if (mainApiKey) return mainApiKey; throw new Error("API Key Gemini belum diatur di Pengaturan Akun atau di variabel lingkungan."); };
     
@@ -43,9 +43,7 @@ function NoteDetailPage() {
         try {
             const sectionToProcess = sections[sectionIndex];
             const combinedHtml = `<h2>${sectionToProcess.title}</h2>${sectionToProcess.content}`;
-            if (!sectionToProcess.content.trim()) {
-                return alert("Tidak ada konten untuk diproses di bagian ini.");
-            }
+            if (!sectionToProcess.content.trim()) { return alert("Tidak ada konten untuk diproses di bagian ini."); }
             const apiKey = await getApiKey();
             if (!apiKey) throw new Error("API Key tidak ditemukan setelah semua pengecekan.");
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
@@ -56,8 +54,6 @@ function NoteDetailPage() {
             const rawJsonText = data.candidates[0].content.parts[0].text;
             let processedText = rawJsonText.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
             const result = JSON.parse(processedText);
-
-            // --- PERUBAHAN LOGIKA FINAL DI SINI ---
             const newTitle = `${sectionToProcess.title} (Diproses AI)`;
             const newContent = `${result.konten_rapi}<br><hr><h3>Ringkasan Poin Penting:</h3>${result.ringkasan_poin}`;
             const updatedSection = { ...sectionToProcess, title: newTitle, content: newContent };
@@ -67,7 +63,6 @@ function NoteDetailPage() {
                 return newSections;
             });
             alert('Bagian berhasil diproses dan digabungkan!');
-
         } catch (error) {
             console.error("Terjadi error di dalam handleSmartProcess:", error);
             alert("Gagal memproses bagian: " + error.message);
@@ -83,10 +78,27 @@ function NoteDetailPage() {
             <div className="flex justify-between items-center mb-4"><h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Catatan</h1><Link to={`/note/${id}`} className="text-blue-500 hover:underline">&larr; Kembali ke Halaman Baca</Link></div>
             <form onSubmit={handleUpdateNote}>
                 <div className="mb-4"><label htmlFor="main-title" className="block text-xl font-semibold mb-2 text-gray-900 dark:text-white">Judul Utama Catatan</label><input id="main-title" type="text" className="w-full text-2xl font-bold px-3 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600" value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
+                
+                {/* --- BAGIAN KATEGORI DIPERBARUI --- */}
                 <div className="mb-6 space-y-2">
-                    <div className="flex justify-between items-center"><label htmlFor="category-select" className="block text-lg font-semibold text-gray-900 dark:text-white">Kategori</label><button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="text-sm text-blue-500 hover:underline">{showAddCategory ? 'Batal' : '[+ Tambah Baru]'}</button></div>
-                    {showAddCategory ? ( <div className="flex items-center gap-2"><input type="text" placeholder="Nama kategori baru..." className="w-full flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} /><button type="button" onClick={handleCreateCategory} disabled={isCreatingCategory} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:bg-gray-400">{isCreatingCategory ? '...' : 'Simpan'}</button></div> ) : ( <div className="flex items-center gap-2"><select id="category-select" className="w-full px-3 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600" value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}><option value="">-- Tanpa Kategori --</option>{categories.map((category) => (<option key={category.id} value={category.id}>{category.name}</option>))}</select><button type="button" onClick={handleDeleteCategory} disabled={!selectedCategoryId || isDeletingCategory} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed" title="Hapus Kategori Terpilih"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button></div> )}
+                    <div className="flex justify-between items-center">
+                        <label htmlFor="category-select" className="block text-lg font-semibold text-gray-900 dark:text-white">Kategori</label>
+                        <button type="button" onClick={() => setShowAddCategory(!showAddCategory)} className="text-sm text-blue-500 hover:underline">{showAddCategory ? 'Batal' : '[+ Tambah Baru]'}</button>
+                    </div>
+                    {showAddCategory ? ( 
+                        <div className="flex items-center gap-2">
+                            <input type="text" placeholder="Nama kategori baru..." className="w-full flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
+                            <button type="button" onClick={handleCreateCategory} disabled={isCreatingCategory} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:bg-gray-400">{isCreatingCategory ? '...' : 'Simpan'}</button>
+                        </div> 
+                    ) : ( 
+                        // Tombol hapus (ikon tong sampah) sudah dihilangkan dari sini
+                        <select id="category-select" className="w-full px-3 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600" value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
+                            <option value="">-- Tanpa Kategori --</option>
+                            {categories.map((category) => (<option key={category.id} value={category.id}>{category.name}</option>))}
+                        </select>
+                    )}
                 </div>
+                
                 <div className="space-y-6">{sections.map((section, index) => (<EditorSection key={section.id} section={section} onTitleChange={(newTitle) => handleUpdateSection(index, 'title', newTitle)} onContentChange={(newContent) => handleUpdateSection(index, 'content', newContent)} onRemove={sections.length > 1 ? () => removeSection(index) : null} onSmartProcess={() => handleSmartProcess(index)} isProcessing={processingSectionIndex === index} onSectionFocus={handleSetActiveSection} />))}</div>
                 <div className="mt-6 pt-6 border-t dark:border-gray-700 flex flex-wrap items-center justify-between gap-4"><button type="button" onClick={addSection} className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600">+ Tambah Bagian</button><div className="flex flex-wrap gap-2"><button type="submit" className="px-6 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600">Simpan Seluruh Catatan</button></div></div>
             </form>
