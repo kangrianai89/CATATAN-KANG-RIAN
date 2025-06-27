@@ -10,26 +10,23 @@ const MenuIcon = () => (
   </svg>
 );
 
-// MainLayout sekarang menerima prop 'session'
 function MainLayout({ session }) { 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="relative min-h-screen md:flex bg-gray-100 dark:bg-gray-900">
       
+      {/* --- HEADER MOBILE DIPERBARUI --- */}
       <div className="bg-gray-800 text-white flex justify-between md:hidden">
-        <a href="/dashboard" className="block p-4 text-white font-bold">DevStudy Hub</a>
+        <a href="/dashboard" className="block p-4 text-white font-bold">CATATAN KANG RIAN</a>
         <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-4 focus:outline-none focus:bg-gray-700">
           <MenuIcon />
         </button>
       </div>
 
-      {/* Teruskan session ke Sidebar */}
       <Sidebar isOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} session={session} />
 
-      {/* Konten Utama - Ditambahkan min-w-0 */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
-        {/* Klon Outlet dan teruskan session sebagai prop ke komponen halaman anak */}
         {React.cloneElement(<Outlet />, { session: session })}
       </main>
       
