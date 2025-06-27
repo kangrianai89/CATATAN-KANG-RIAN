@@ -45,8 +45,6 @@ function AssetDetailPage() {
       setLoading(true);
       const savedDraft = localStorage.getItem(DRAFT_KEY);
 
-      // --- PERBAIKAN LOGIKA UTAMA DI SINI ---
-      // Jika ada draf, selalu muat draf tersebut.
       if (savedDraft) {
         console.log("Memuat draf dari localStorage...");
         const draft = JSON.parse(savedDraft);
@@ -56,8 +54,6 @@ function AssetDetailPage() {
         setGeneratorLinks(draft.generatorLinks && draft.generatorLinks.length > 0 ? draft.generatorLinks : [{ name: '', url: '' }]);
         setCodeSnippets(draft.codeSnippets && draft.codeSnippets.length > 0 ? draft.codeSnippets : [{ title: '', code: '' }]);
         
-        // Kita tetap perlu data asli aset untuk perbandingan saat batal edit,
-        // dan untuk mengambil URL gambar yang ada.
         if (!isNewAsset) {
             const { data, error } = await supabase.from('pages').select('*').eq('id', id).single();
             if (error) {
@@ -72,9 +68,8 @@ function AssetDetailPage() {
         } else {
             setAsset({ id: 'new' });
         }
-        setIsEditing(true); // Masuk ke mode edit jika ada draf
+        setIsEditing(true);
       } else {
-        // Jika tidak ada draf, baru ambil dari database
         try {
             if (!isNewAsset) {
                 const { data, error } = await supabase.from('pages').select('*').eq('id', id).single(); 
@@ -89,7 +84,7 @@ function AssetDetailPage() {
                     const { data: urlData } = supabase.storage.from('asset-images').getPublicUrl(data.image_path);
                     if (urlData) setImageUrl(urlData.publicUrl);
                 }
-            } else { // Inisialisasi untuk aset baru
+            } else {
                 setEditTitle(''); 
                 setEditDescription(''); 
                 setSelectedAssetCategoryId(''); 
@@ -251,7 +246,7 @@ function AssetDetailPage() {
 
   const renderContent = () => (
     <div className="space-y-8">
-      {isEditing && ( <div> <label className="block text-lg font-semibold mb-2 dark:text-white">Kategori Aset</label> <select value={selectedAssetCategoryId} onChange={(e) => setSelectedAssetCategoryId(e.target.value)} required className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"> <option value="" disabled>-- Pilih Kategori --</option> {allAssetCategories.map(cat => ( <option key={cat.id} value={cat.id}>{cat.name}</option> ))} </select> </div> )}
+      {isEditing && ( <div> <label className="block text-lg font-semibold mb-2 dark:text-white">Kategori Aset</label> <select value={selectedAssetCategoryId} onChange={(e) => setSelectedAssetCategoryId(e.target.value)} required className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"> <option value="" disabled>-- Pilih Kategori --</option> {allAssetCategories.map(cat => ( <option key={cat.id} value={cat.id}>{cat.name}</option> ))} </select> dihapus</div> )}
       <div> <label className="block text-lg font-semibold mb-2 dark:text-white">Link Generator (Opsional)</label> {isEditing ? ( <div className="space-y-3 p-4 border rounded-lg dark:border-gray-600"> {generatorLinks.map((link, index) => ( <div key={index} className="flex flex-col sm:flex-row items-center gap-2"> <input type="text" value={link.name} onChange={(e) => handleLinkChange(index, 'name', e.target.value)} placeholder="Nama Link (misal: Demo)" className="w-full sm:w-1/3 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"/> <input type="url" value={link.url} onChange={(e) => handleLinkChange(index, 'url', e.target.value)} placeholder="https://..." className="w-full sm:flex-grow px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"/> <button type="button" onClick={() => handleRemoveLink(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full w-full sm:w-auto mt-2 sm:mt-0">Hapus</button> </div> ))} <button type="button" onClick={handleAddLink} className="mt-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">+ Tambah Link</button> </div> ) : ( asset?.generator_links && asset.generator_links.length > 0 ? ( <ul className="list-disc list-inside pl-5 space-y-1"> {asset.generator_links.map((link, index) => ( <li key={index}><a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{link.name || link.url}</a></li> ))} </ul> ) : <p className="text-gray-500 italic">Tidak ada link.</p> )} </div>
       <div className="flex flex-col md:flex-row md:items-start gap-8">
         <div className="md:w-1/2">
@@ -271,7 +266,7 @@ function AssetDetailPage() {
             <div className="space-y-4">
                 {codeSnippets.map((snippet, index) => (
                     <div key={index} className="p-4 border rounded-lg dark:border-gray-600 space-y-2">
-                         <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center">
                             <input type="text" value={snippet.title} onChange={(e) => handleSnippetChange(index, 'title', e.target.value)} placeholder="Judul Cuplikan Kode..." className="text-md font-semibold bg-transparent w-full focus:outline-none dark:text-white px-2 py-1 border-b dark:border-gray-500"/>
                             <button type="button" onClick={() => handleRemoveSnippet(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full">&times;</button>
                         </div>
