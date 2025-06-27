@@ -8,6 +8,7 @@ const WebCollectionIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="2
 const EmailIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>;
 const ScanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><rect x="7" y="7" width="10" height="10" rx="1"></rect></svg>;
 const PinIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>;
+const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
 
 
 function DashboardPage({ session }) {
@@ -31,7 +32,6 @@ function DashboardPage({ session }) {
         const [pinnedResponse, recentNotesResponse, webCollectionsResponse] = await Promise.all([
           supabase.from('notes').select('id, title').eq('pinned', true).order('created_at', { ascending: false }),
           supabase.from('notes').select('id, title, created_at').order('created_at', { ascending: false }).limit(3),
-          // --- PERBAIKAN DI SINI: Menghapus 'category' dari select ---
           supabase.from('web_collections').select('id, title').order('created_at', { ascending: false }).limit(3)
         ]);
 
@@ -52,13 +52,27 @@ function DashboardPage({ session }) {
 
     fetchDashboardData();
   }, []);
+
+  // --- FUNGSI BARU UNTUK LOGOUT ---
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/'); // Arahkan kembali ke halaman login
+  };
   
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400">Selamat datang kembali, {session.user.email}</p>
+      {/* --- HEADER DIPERBARUI DENGAN TOMBOL LOGOUT --- */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div>
+            <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
+            <p className="text-gray-600 dark:text-gray-400">Selamat datang kembali, {session.user.email}</p>
+        </div>
+        <button 
+            onClick={handleLogout} 
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex-shrink-0"
+        >
+            Logout
+        </button>
       </div>
 
       {/* Kartu Navigasi */}
@@ -106,7 +120,6 @@ function DashboardPage({ session }) {
                         {recentWebCollections.map((collection, index) => (
                             <li key={collection.id} className={`flex justify-between items-center py-3 ${index < recentWebCollections.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}>
                                 <Link to={`/web-collections/${collection.id}`} className="text-green-600 dark:text-green-400 font-medium truncate pr-4 hover:underline">{collection.title}</Link>
-                                {/* --- PERBAIKAN DI SINI: Menghapus tampilan kategori --- */}
                             </li>
                         ))}
                     </ul>
