@@ -5,9 +5,9 @@ import { supabase } from './supabaseClient';
 // Import Halaman
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import DashboardPage from "./pages/DashboardPage"; // Halaman dashboard baru
-import NotesPage from "./pages/NotesPage"; // Halaman catatan yang sudah di-rename
-import NoteDetailPage from "./pages/NoteDetailPage";
+import DashboardPage from "./pages/DashboardPage";
+import NotesPage from "./pages/NotesPage";
+// import NoteDetailPage from "./pages/NoteDetailPage"; // <-- DIHAPUS
 import NoteViewPage from './pages/NoteViewPage';
 import PlaygroundPage from './pages/PlaygroundPage';
 import AssetDetailPage from './pages/AssetDetailPage';
@@ -18,6 +18,7 @@ import ImageReaderPage from './pages/ImageReaderPage';
 import SettingsPage from './pages/SettingsPage';
 import WebCollectionsPage from './pages/WebCollectionsPage'; 
 import WebCollectionDetailPage from './pages/WebCollectionDetailPage';
+import NoteCollectionDetailPage from './pages/NoteCollectionDetailPage'; // <-- DITAMBAHKAN
 
 // Import Layout
 import MainLayout from './components/MainLayout';
@@ -61,11 +62,12 @@ function App() {
             <Route element={<ProtectedLayout session={session} />}>
               <Route path="/dashboard" element={<DashboardPage session={session} />} />
               
-              {/* Rute untuk Catatan */}
+              {/* Rute untuk Catatan (Diperbarui) */}
               <Route path="/notes" element={<NotesPage session={session} />} />
-              <Route path="/notes/category/:categoryId" element={<NotesPage session={session} />} />
+              {/* <Route path="/notes/category/:categoryId" element={<NotesPage session={session} />} /> */} {/* <-- DIHAPUS (untuk sementara) */}
               <Route path="/note/:id" element={<NoteViewPage />} />
-              <Route path="/note/:id/edit" element={<NoteDetailPage />} />
+              {/* <Route path="/note/:id/edit" element={<NoteDetailPage />} /> */} {/* <-- DIHAPUS */}
+              <Route path="/note-collection/:id" element={<NoteCollectionDetailPage session={session} />} /> {/* <-- DITAMBAHKAN */}
 
               {/* Rute Lainnya */}
               <Route path="/playground" element={<PlaygroundPage />} />
