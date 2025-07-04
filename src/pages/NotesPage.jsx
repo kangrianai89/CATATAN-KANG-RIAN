@@ -33,12 +33,11 @@ const FolderCard = ({note, onDelete, onTogglePin}) => {
 // --- Komponen Halaman Utama ---
 function NotesPage({ session }) { 
     const [loading, setLoading] = useState(true);
-    const [notes, setNotes] = useState([]); // Sekarang hanya 'notes' (sebagai folder)
+    const [notes, setNotes] = useState([]);
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
     const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
     const user = session?.user;
 
-    // Mengambil data folder
     useEffect(() => {
         async function fetchFolders() {
             if (!user) { setLoading(false); return; }
@@ -104,7 +103,8 @@ function NotesPage({ session }) {
     
     return (
     <>
-        <div className="flex justify-between items-start mb-8 gap-4">
+        {/* --- PERUBAHAN DI SINI --- */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-8 gap-4">
             <div>
                 <h1 className="text-3xl font-bold dark:text-white">Folder Catatan</h1>
                 <p className="text-gray-600 dark:text-gray-400">Buat folder untuk mengelompokkan catatan Anda.</p>
