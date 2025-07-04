@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import MenuBar from './MenuBar'; // <-- Impor MenuBar terpusat
+import MenuBar from './MenuBar';
 
-function NoteItemEditModal({ isOpen, onClose, item, onSave }) {
+function NoteItemEditModal({ isOpen, onClose, item, onSave, folders }) { // Tambah prop 'folders'
     const [title, setTitle] = useState('');
+    const [selectedFolderId, setSelectedFolderId] = useState(''); // State baru untuk folder tujuan
     const [isSaving, setIsSaving] = useState(false);
 
     const editor = useEditor({
@@ -22,6 +23,7 @@ function NoteItemEditModal({ isOpen, onClose, item, onSave }) {
     useEffect(() => {
         if (item && editor) {
             setTitle(item.title);
+            setSelectedFolderId(item.note_id); // Set folder awal saat modal dibuka
             editor.commands.setContent(item.content || '');
         }
     }, [item, editor]);
@@ -29,7 +31,8 @@ function NoteItemEditModal({ isOpen, onClose, item, onSave }) {
     const handleSave = async () => {
         setIsSaving(true);
         const content = editor.getHTML();
-        await onSave(item.id, title, content);
+        // Kirim folderId yang baru ke fungsi onSave
+        await onSave(item.id, title, content, selectedFolderId);
         setIsSaving(false);
         onClose();
     };
@@ -43,6 +46,19 @@ function NoteItemEditModal({ isOpen, onClose, item, onSave }) {
                     <h2 className="text-xl font-bold dark:text-white">Edit Item Catatan</h2>
                 </div>
                 <div className="p-4 space-y-4 overflow-y-auto">
+                    {/* FORM UNTUK PINDAH FOLDER */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Pindahkan ke Folder</label>
+                        <select
+                            value={selectedFolderId}
+                            onChange={(e) => setSelectedFolderId(e.target.value)}
+                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        >
+                            {folders.map(folder => (
+                                <option key={folder.id} value={folder.id}>{folder.title}</option>
+                            ))}
+                        </select>
+                    </div>
                     <div>
                         <label className="block text-sm font-medium mb-1 dark:text-gray-300">Judul Item</label>
                         <input

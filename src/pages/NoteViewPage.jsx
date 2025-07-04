@@ -98,7 +98,7 @@ function NoteViewPage({ session }) {
             
             <div className="space-y-8">
                 {items && items.map((item, index) => (
-                    <div key={item.id} className="border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm overflow-hidden">
+                    <div key={item.id} className="sm:border sm:rounded-lg sm:bg-white sm:dark:bg-gray-800 sm:dark:border-gray-700 sm:shadow-sm overflow-hidden">
                         
                         <div className="flex justify-between items-center border-b dark:border-gray-600 px-4 sm:px-6 pt-4 pb-2">
                             <h2 className="text-2xl font-semibold text-gray-800 dark:text-white break-words">

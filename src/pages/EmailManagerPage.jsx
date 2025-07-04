@@ -5,11 +5,14 @@ function EmailManagerPage() {
   const [loading, setLoading] = useState(true);
   const [emails, setEmails] = useState([]);
   
-  // State untuk form input
+  // State untuk kontrol form
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  // State untuk input di dalam form
   const [newEmail, setNewEmail] = useState('');
   const [newNickname, setNewNickname] = useState('');
   const [newType, setNewType] = useState('Biasa');
-  const [newKeterangan, setNewKeterangan] = useState(''); // State baru untuk keterangan
+  const [newKeterangan, setNewKeterangan] = useState('');
 
   // State untuk filter dan notifikasi
   const [typeFilter, setTypeFilter] = useState('Semua');
@@ -46,18 +49,20 @@ function EmailManagerPage() {
                 email_address: newEmail,
                 nickname: newNickname,
                 account_type: newType,
-                keterangan: newKeterangan, // Kirim data keterangan
+                keterangan: newKeterangan,
                 user_id: user.id
             })
             .select()
             .single();
         if (error) throw error;
         setEmails([data, ...emails]);
-        // Reset semua form input
+        
+        // Reset dan sembunyikan form
         setNewEmail('');
         setNewNickname('');
         setNewType('Biasa');
         setNewKeterangan('');
+        setShowAddForm(false);
     } catch (error) {
         alert("Gagal menambah email: " + error.message);
     }
@@ -75,24 +80,20 @@ function EmailManagerPage() {
     }
   };
 
-  // --- FUNGSI BARU UNTUK CHECKBOX ---
   const handleToggleCheck = async (id, currentStatus) => {
-    // Update UI secara optimis untuk respons cepat
     const updatedEmails = emails.map(email =>
         email.id === id ? { ...email, is_checked: !currentStatus } : email
     );
     setEmails(updatedEmails);
 
-    // Kirim perubahan ke database di latar belakang
     try {
         const { error } = await supabase
             .from('email_accounts')
             .update({ is_checked: !currentStatus })
             .eq('id', id);
         if (error) {
-            // Jika gagal, kembalikan state UI ke semula dan beri notifikasi
             alert("Gagal menyimpan perubahan: " + error.message);
-            setEmails(emails); // Kembalikan ke state awal sebelum update
+            setEmails(emails);
         }
     } catch (error) {
         alert("Gagal menyimpan perubahan: " + error.message);
@@ -126,35 +127,44 @@ function EmailManagerPage() {
     <>
       <h1 className="text-3xl font-bold mb-8 dark:text-white">Manajer Email</h1>
 
-      {/* Form Tambah Email */}
-      <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <form onSubmit={handleAddEmail} className="space-y-4">
-          <h2 className="text-xl font-semibold dark:text-white">Tambah Akun Email Baru</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input type="email" placeholder="Alamat Email (contoh@gmail.com)" required className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-            <input type="text" placeholder="Nama Panggilan (Opsional)" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newNickname} onChange={(e) => setNewNickname(e.target.value)} />
-            <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-              <option value="Biasa">Biasa</option>
-              <option value="Student">Student</option>
-              <option value="Flow">Flow</option>
-            </select>
-          </div>
-          {/* Input Keterangan Baru */}
-          <textarea
-            placeholder="Keterangan (Opsional)"
-            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            value={newKeterangan}
-            onChange={(e) => setNewKeterangan(e.target.value)}
-            rows="2"
-          ></textarea>
-          <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Tambah ke Daftar</button>
-        </form>
-      </div>
+      {/* Tampilkan form hanya jika showAddForm bernilai true */}
+      {showAddForm && (
+        <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
+          <form onSubmit={handleAddEmail} className="space-y-4">
+            <h2 className="text-xl font-semibold dark:text-white">Tambah Akun Email Baru</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input type="email" placeholder="Alamat Email (contoh@gmail.com)" required className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+              <input type="text" placeholder="Nama Panggilan (Opsional)" className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={newNickname} onChange={(e) => setNewNickname(e.target.value)} />
+              <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="Biasa">Biasa</option>
+                <option value="Student">Student</option>
+                <option value="Flow">Flow</option>
+              </select>
+            </div>
+            <textarea
+              placeholder="Keterangan (Opsional)"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              value={newKeterangan}
+              onChange={(e) => setNewKeterangan(e.target.value)}
+              rows="2"
+            ></textarea>
+            <div className="flex gap-4">
+                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Tambah ke Daftar</button>
+                <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 bg-gray-200 text-black dark:bg-gray-600 dark:text-white rounded-lg hover:bg-gray-300">Batal</button>
+            </div>
+          </form>
+        </div>
+      )}
 
-      {/* Daftar Email */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold dark:text-white">Daftar Email Tersimpan</h2>
+          {/* Tombol untuk menampilkan form */}
+          {!showAddForm && (
+            <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition-colors">
+                + Tambah Email Baru
+            </button>
+          )}
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600">
             <option value="Semua">Filter: Semua</option>
             <option value="Biasa">Biasa</option>
