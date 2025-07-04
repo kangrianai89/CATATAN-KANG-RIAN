@@ -13,7 +13,7 @@ function NoteCollectionDetailPage({ session }) {
     const navigate = useNavigate();
     const [parentNote, setParentNote] = useState(null);
     const [items, setItems] = useState([]);
-    const [allFolders, setAllFolders] = useState([]); // State baru untuk daftar semua folder
+    const [allFolders, setAllFolders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -37,11 +37,10 @@ function NoteCollectionDetailPage({ session }) {
             setLoading(true);
             try {
                 if (!user || !id) return;
-                // Tambahkan fetch untuk semua folder
                 const [parentNoteRes, itemsRes, allFoldersRes] = await Promise.all([
                     supabase.from('notes').select('*').eq('id', id).single(),
                     supabase.from('note_items').select('*').eq('note_id', id).order('created_at', { ascending: true }),
-                    supabase.from('notes').select('id, title') // Ambil semua folder untuk dropdown
+                    supabase.from('notes').select('id, title')
                 ]);
 
                 if (parentNoteRes.error) throw parentNoteRes.error;
@@ -50,7 +49,7 @@ function NoteCollectionDetailPage({ session }) {
                 
                 setParentNote(parentNoteRes.data);
                 setItems(itemsRes.data);
-                setAllFolders(allFoldersRes.data); // Simpan daftar folder
+                setAllFolders(allFoldersRes.data);
                 setEditTitle(parentNoteRes.data.title);
                 setEditDescription(parentNoteRes.data.description || '');
             } catch (err) {
@@ -117,24 +116,21 @@ function NoteCollectionDetailPage({ session }) {
         setIsModalOpen(true);
     };
 
-    // --- LOGIKA UPDATE DIPERBARUI ---
     const handleUpdateItem = async (itemId, newTitle, newContent, newFolderId) => {
         try {
             const { data, error } = await supabase
                 .from('note_items')
-                .update({ title: newTitle, content: newContent, note_id: newFolderId }) // Tambah note_id
+                .update({ title: newTitle, content: newContent, note_id: newFolderId })
                 .eq('id', itemId)
                 .select()
                 .single();
                 
             if (error) throw error;
 
-            // Jika item dipindah ke folder lain, hapus dari tampilan halaman ini
             if (newFolderId !== id) {
                 setItems(prevItems => prevItems.filter(item => item.id !== itemId));
                 alert("Item berhasil dipindahkan!");
             } else {
-                // Jika tidak pindah, perbarui item di halaman ini
                 setItems(prevItems => prevItems.map(item => (item.id === itemId ? data : item)));
                 alert("Item berhasil diperbarui!");
             }
@@ -181,12 +177,14 @@ function NoteCollectionDetailPage({ session }) {
                             </form>
                         )}
                     </div>
+                    {/* --- KARTU ITEM CATATAN --- */}
                     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                        <h2 className="text-xl font-semibold mb-4 dark:text-white">Item Catatan</h2>
+                        <h2 className="text-xl font-semibold mb-2 dark:text-white">Item Catatan</h2>
                         <div className="space-y-4">
-                            {items.map(item => (
-                                <div key={item.id} className="p-4 border dark:border-gray-700 rounded-md">
-                                    <div className="flex justify-between items-start">
+                            {/* --- PERUBAHAN UTAMA DI SINI --- */}
+                            {items.map((item, index) => (
+                                <div key={item.id} className={`pt-4 ${index > 0 ? 'border-t dark:border-gray-700' : ''}`}>
+                                    <div className="flex justify-between items-start mb-2">
                                         <button onClick={() => handleOpenEditModal(item)} className="text-left w-full mr-4">
                                             <h3 className="text-xl font-bold dark:text-white hover:underline">{item.title}</h3>
                                         </button>
@@ -195,7 +193,7 @@ function NoteCollectionDetailPage({ session }) {
                                             <button onClick={() => handleDeleteItem(item.id)} className="text-red-500 text-sm font-medium">Hapus</button>
                                         </div>
                                     </div>
-                                    <div className="prose dark:prose-invert max-w-none mt-2" dangerouslySetInnerHTML={{ __html: item.content }} />
+                                    <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: item.content }} />
                                 </div>
                             ))}
                             {items.length === 0 && <p className="text-center text-gray-500 py-4">Belum ada item di folder ini.</p>}
@@ -220,7 +218,6 @@ function NoteCollectionDetailPage({ session }) {
                     </div>
                 </div>
             </div>
-            {/* Berikan prop 'folders' ke modal */}
             <NoteItemEditModal 
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
