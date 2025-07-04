@@ -17,35 +17,33 @@ const CopyIcon = (props) => (
     </svg>
 );
 
-// --- PERUBAHAN BARU: IKON CENTANG UNTUK FEEDBACK ---
 const CheckIcon = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <polyline points="20 6 9 17 4 12"></polyline>
     </svg>
 );
 
-
-function NoteViewPage() {
+function NoteViewPage({ session }) {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
     const [note, setNote] = useState(null);
-    const [copySuccess, setCopySuccess] = useState(false);
-    
-    // --- PERUBAHAN BARU: STATE UNTUK SALIN PER BAGIAN ---
+    const [items, setItems] = useState([]);
     const [copiedSectionIndex, setCopiedSectionIndex] = useState(null);
 
-    const fetchNote = useCallback(async () => {
+    const fetchNoteData = useCallback(async () => {
         if (!id) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('notes')
-                .select('title, sections, created_at, updated_at')
-                .eq('id', id)
-                .single();
+            const [noteRes, itemsRes] = await Promise.all([
+                supabase.from('notes').select('title, created_at, updated_at').eq('id', id).single(),
+                supabase.from('note_items').select('*').eq('note_id', id).order('created_at', { ascending: true })
+            ]);
 
-            if (error) throw error;
-            setNote(data);
+            if (noteRes.error) throw noteRes.error;
+            if (itemsRes.error) throw itemsRes.error;
+            
+            setNote(noteRes.data);
+            setItems(itemsRes.data);
         } catch (error) {
             alert("Gagal memuat catatan: " + error.message);
         } finally {
@@ -54,8 +52,8 @@ function NoteViewPage() {
     }, [id]);
 
     useEffect(() => {
-        fetchNote();
-    }, [id, fetchNote]);
+        fetchNoteData();
+    }, [id, fetchNoteData]);
     
     const convertHtmlToText = (html) => {
         const tempDiv = document.createElement('div');
@@ -63,22 +61,6 @@ function NoteViewPage() {
         return tempDiv.textContent || tempDiv.innerText || '';
     };
 
-    const handleCopyNote = () => {
-        if (!note) return;
-        let fullNoteText = `# ${note.title}\n\n`;
-        note.sections.forEach(sec => {
-            fullNoteText += `## ${sec.title}\n`;
-            fullNoteText += `${convertHtmlToText(sec.content)}\n\n`;
-        });
-        navigator.clipboard.writeText(fullNoteText.trim()).then(() => {
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
-        }, (err) => {
-            alert('Gagal menyalin catatan: ' + err);
-        });
-    };
-    
-    // --- PERUBAHAN BARU: FUNGSI UNTUK SALIN PER BAGIAN ---
     const handleCopySection = (htmlContent, index) => {
         const textToCopy = convertHtmlToText(htmlContent);
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -88,7 +70,6 @@ function NoteViewPage() {
             alert('Gagal menyalin bagian: ' + err);
         });
     };
-
 
     if (loading) return <div className="p-8 dark:text-gray-300">Memuat catatan...</div>;
     if (!note) return <div className="p-8 dark:text-gray-400">Catatan tidak ditemukan.</div>;
@@ -107,32 +88,24 @@ function NoteViewPage() {
 
             <div className="flex flex-wrap gap-2 mb-8">
                 <Link 
-                    to={`/note/${id}/edit`} 
+                    to={`/note-collection/${id}`}
                     className="inline-flex items-center justify-center px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
                 >
                     <EditIcon />
-                    <span>Edit Catatan</span>
+                    <span>Lihat/Edit di Koleksi</span>
                 </Link>
-                <button 
-                    onClick={handleCopyNote}
-                    className="inline-flex items-center justify-center px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                    <CopyIcon className="h-5 w-5 mr-2" />
-                    <span>{copySuccess ? 'Berhasil Disalin!' : 'Salin Semua'}</span>
-                </button>
             </div>
             
             <div className="space-y-8">
-                {note.sections && note.sections.map((section, index) => (
-                    <div key={index} className="border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm overflow-hidden">
+                {items && items.map((item, index) => (
+                    <div key={item.id} className="border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm overflow-hidden">
                         
-                        {/* --- PERUBAHAN BARU: HEADER DENGAN TOMBOL SALIN --- */}
-                        <div className="flex justify-between items-center border-b dark:border-gray-600 px-6 pt-4 pb-2">
+                        <div className="flex justify-between items-center border-b dark:border-gray-600 px-4 sm:px-6 pt-4 pb-2">
                             <h2 className="text-2xl font-semibold text-gray-800 dark:text-white break-words">
-                                {section.title}
+                                {item.title}
                             </h2>
                             <button 
-                                onClick={() => handleCopySection(section.content, index)}
+                                onClick={() => handleCopySection(item.content, index)}
                                 className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
                                 title="Salin bagian ini"
                             >
@@ -145,11 +118,14 @@ function NoteViewPage() {
                         </div>
 
                         <div
-                            className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto overflow-x-auto px-6 pb-4 pt-4 break-words"
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
+                            className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto overflow-x-auto px-4 sm:px-6 pb-4 pt-4 break-words"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content) }}
                         />
                     </div>
                 ))}
+                {items.length === 0 && (
+                    <p className="text-center text-gray-500 dark:text-gray-400 py-8">Belum ada konten di dalam catatan ini.</p>
+                )}
             </div>
         </>
     );

@@ -32,7 +32,7 @@ function DashboardPage({ session }) {
         const [pinnedResponse, recentNotesResponse, webCollectionsResponse] = await Promise.all([
           supabase.from('notes').select('id, title').eq('pinned', true).order('created_at', { ascending: false }),
           supabase.from('notes').select('id, title, created_at').order('created_at', { ascending: false }).limit(3),
-          supabase.from('web_collections').select('id, title').order('created_at', { ascending: false }).limit(3)
+          supabase.from('web_collections').select('id, title').limit(3) // <-- PERUBAHAN DI SINI
         ]);
 
         if (pinnedResponse.error) throw pinnedResponse.error;
@@ -53,15 +53,13 @@ function DashboardPage({ session }) {
     fetchDashboardData();
   }, []);
 
-  // --- FUNGSI BARU UNTUK LOGOUT ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/'); // Arahkan kembali ke halaman login
+    navigate('/'); 
   };
   
   return (
     <div className="space-y-8">
-      {/* --- HEADER DIPERBARUI DENGAN TOMBOL LOGOUT --- */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
             <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
@@ -75,7 +73,6 @@ function DashboardPage({ session }) {
         </button>
       </div>
 
-      {/* Kartu Navigasi */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {navigationCards.map(card => (
           <Link to={card.path} key={card.title} className="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-xl hover:-translate-y-1 transform transition-all duration-300">
@@ -92,7 +89,6 @@ function DashboardPage({ session }) {
       
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
-            {/* Aktivitas Catatan Terbaru */}
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
               <h2 className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2"><NoteIcon /> Aktivitas Catatan Terbaru</h2>
               {loading ? <p className="dark:text-gray-400">Memuat...</p> : recentNotes.length > 0 ? (
@@ -112,7 +108,6 @@ function DashboardPage({ session }) {
               )}
             </div>
 
-            {/* Koleksi Web Terbaru */}
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
                 <h2 className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2"><WebCollectionIcon /> Koleksi Web Terbaru</h2>
                 {loading ? <p className="dark:text-gray-400">Memuat...</p> : recentWebCollections.length > 0 ? (
