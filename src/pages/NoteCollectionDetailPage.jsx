@@ -10,6 +10,11 @@ function NoteCollectionDetailPage({ session }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // State untuk mode edit folder
+    const [isEditing, setIsEditing] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDescription, setEditDescription] = useState('');
+
     useEffect(() => {
         async function fetchData() {
             if (!id) return;
@@ -23,8 +28,14 @@ function NoteCollectionDetailPage({ session }) {
                 if (parentNoteRes.error) throw parentNoteRes.error;
                 if (itemsRes.error) throw itemsRes.error;
 
-                setParentNote(parentNoteRes.data);
+                const folderData = parentNoteRes.data;
+                setParentNote(folderData);
                 setItems(itemsRes.data);
+
+                // Inisialisasi state untuk form edit
+                setEditTitle(folderData.title);
+                setEditDescription(folderData.description || '');
+
             } catch (err) {
                 setError('Gagal memuat data: ' + err.message);
             } finally {
@@ -33,24 +44,25 @@ function NoteCollectionDetailPage({ session }) {
         }
         fetchData();
     }, [id]);
+    
+    // Fungsi untuk menyimpan perubahan pada folder
+    const handleUpdateFolder = async (e) => {
+        e.preventDefault();
+        try {
+            const { data, error } = await supabase
+                .from('notes')
+                .update({ title: editTitle, description: editDescription })
+                .eq('id', id)
+                .select()
+                .single();
 
-    const handleDeleteFolder = async () => {
-        const confirmText = window.prompt(`Anda akan menghapus SELURUH folder catatan "${parentNote.title}" dan semua isinya. Ini tidak bisa diurungkan. Ketik 'HAPUS'.`);
-        if (confirmText === "HAPUS") {
-            try {
-                // Hapus semua item terlebih dahulu
-                const { error: deleteItemsError } = await supabase.from('note_items').delete().eq('note_id', id);
-                if (deleteItemsError) throw deleteItemsError;
-
-                // Hapus folder
-                const { error: deleteFolderError } = await supabase.from('notes').delete().eq('id', id);
-                if (deleteFolderError) throw deleteFolderError;
-
-                alert(`Folder catatan "${parentNote.title}" berhasil dihapus.`);
-                navigate('/notes'); // Kembali ke daftar folder
-            } catch (error) {
-                alert("Gagal menghapus folder catatan: " + error.message);
-            }
+            if (error) throw error;
+            
+            setParentNote(data); // Perbarui tampilan dengan data baru
+            setIsEditing(false); // Keluar dari mode edit
+            alert('Folder berhasil diperbarui!');
+        } catch (error) {
+            alert('Gagal memperbarui folder: ' + error.message);
         }
     };
 
@@ -65,20 +77,39 @@ function NoteCollectionDetailPage({ session }) {
                 &larr; Kembali ke Daftar Semua Folder
             </button>
 
-            {/* --- Bagian Detail Folder --- */}
-            <div className="mb-8">
-                <h1 className="text-4xl font-bold dark:text-white">{parentNote.title}</h1>
-                <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">{parentNote.description}</p>
-                <div className="mt-4">
-                     <button onClick={handleDeleteFolder} className="text-sm text-red-500 hover:underline">
-                        Hapus Folder Ini
-                    </button>
-                </div>
+            {/* --- Bagian Detail Folder (Bisa Edit) --- */}
+            <div className="mb-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                {!isEditing ? (
+                    <div>
+                        <h1 className="text-4xl font-bold dark:text-white">{parentNote.title}</h1>
+                        <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">{parentNote.description}</p>
+                        <div className="text-right mt-4">
+                            <button onClick={() => setIsEditing(true)} className="text-sm text-blue-500 hover:underline font-semibold">
+                                Edit Detail Folder
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <form onSubmit={handleUpdateFolder} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Judul Folder</label>
+                            <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Deskripsi</label>
+                            <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows="3" className="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700"></textarea>
+                        </div>
+                        <div className="flex gap-4">
+                            <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-md">Simpan</button>
+                            <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 rounded-md">Batal</button>
+                        </div>
+                    </form>
+                )}
             </div>
 
             {/* --- Bagian Daftar Judul Catatan --- */}
             <div>
-                <h2 className="text-2xl font-semibold mb-4 dark:text-white border-t pt-6 dark:border-gray-700">Daftar Catatan</h2>
+                <h2 className="text-2xl font-semibold mb-4 dark:text-white">Daftar Catatan</h2>
                 <div className="space-y-1">
                     {items.length > 0 ? (
                         items.map(item => (
