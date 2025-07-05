@@ -1,181 +1,150 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
-import WebCollectionModal from '../components/WebCollectionModal'; // Import modal baru
+import WebCollectionModal from '../components/WebCollectionModal';
 
-// Ikon-ikon
-const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
+// --- Komponen Ikon ---
+const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 11.5-11.5z"/></svg>;
+const MoreVerticalIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>;
 
 function WebCollectionsPage({ session }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [collections, setCollections] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false); // State untuk modal
+    const [modalState, setModalState] = useState({ mode: 'closed', data: null });
+    const [openMenuId, setOpenMenuId] = useState(null);
     const user = session?.user;
-
-    // --- Pengolahan Data dengan useMemo ---
-    const parentCategories = useMemo(() => categories.filter(cat => !cat.parent_id).sort((a,b) => a.name.localeCompare(b.name)), [categories]);
-    
-    const subCategoriesByParent = useMemo(() => {
-        const grouped = {};
-        parentCategories.forEach(pCat => {
-            grouped[pCat.id] = categories.filter(cat => cat.parent_id === pCat.id).sort((a,b) => a.name.localeCompare(b.name));
-        });
-        return grouped;
-    }, [categories, parentCategories]);
-
-    const collectionsBySubCategory = useMemo(() => {
-        const grouped = {};
-        collections.forEach(col => {
-            if (!grouped[col.category_id]) {
-                grouped[col.category_id] = [];
-            }
-            grouped[col.category_id].push(col);
-        });
-        for (const subCatId in grouped) {
-            grouped[subCatId].sort((a, b) => a.title.localeCompare(b.title));
-        }
-        return grouped;
-    }, [collections]);
-    // --- End Pengolahan Data ---
+    const menuRef = useRef(null);
 
     useEffect(() => {
-        async function fetchData() {
-            if (!user) {
+        function handleClickOutside(event) {
+            if (openMenuId && menuRef.current && !menuRef.current.contains(event.target)) {
+                setOpenMenuId(null);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [openMenuId]);
+
+    useEffect(() => {
+        async function fetchCollections() {
+            if (!user?.id) { // Cek user.id langsung
                 setError("User not authenticated.");
                 setLoading(false);
                 return;
             }
-            setLoading(true);
-            setError(null);
             try {
-                const [categoriesRes, collectionsRes] = await Promise.all([
-                    supabase.from('web_categories').select('*').eq('user_id', user.id),
-                    supabase.from('web_collections').select('*').eq('user_id', user.id)
-                ]);
+                setLoading(true);
+                const { data, error: fetchError } = await supabase
+                    .from('web_collections')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
 
-                if (categoriesRes.error) throw categoriesRes.error;
-                if (collectionsRes.error) throw collectionsRes.error;
-
-                setCategories(categoriesRes.data || []);
-                setCollections(collectionsRes.data || []);
+                if (fetchError) throw fetchError;
+                setCollections(data || []);
             } catch (err) {
-                console.error("Error fetching data:", err.message);
-                setError("Gagal memuat data: " + err.message);
+                setError("Gagal memuat koleksi: " + err.message);
             } finally {
                 setLoading(false);
             }
         }
-        fetchData();
-    }, [user]);
+        fetchCollections();
+    // --- PERUBAHAN UTAMA ADA DI BARIS INI ---
+    }, [user?.id]);
 
-    // --- Fungsi Handler untuk Aksi dari Halaman ---
+    const handleOpenModalForAdd = () => setModalState({ mode: 'add', data: null });
+    const handleOpenModalForEdit = (collection) => {
+        setModalState({ mode: 'edit', data: collection });
+        setOpenMenuId(null);
+    };
+    const handleCloseModal = () => setModalState({ mode: 'closed', data: null });
+    
     const handleDeleteCollection = async (collectionToDelete) => {
-        const confirmText = window.prompt(`Anda akan menghapus koleksi "${collectionToDelete.title}". Aksi ini tidak dapat dibatalkan.\n\nUntuk konfirmasi, ketik 'HAPUS' di bawah ini.`);
-        if (confirmText === "HAPUS") {
+        setOpenMenuId(null);
+        if (window.prompt(`Ketik 'HAPUS' untuk menghapus koleksi "${collectionToDelete.title}".`) === "HAPUS") {
             try {
-                const { error } = await supabase.from('web_collections').delete().eq('id', collectionToDelete.id);
-                if (error) throw error;
+                await supabase.from('web_collections').delete().eq('id', collectionToDelete.id);
                 setCollections(prev => prev.filter(c => c.id !== collectionToDelete.id));
-                alert('Koleksi berhasil dihapus.');
             } catch (err) {
                 setError("Gagal menghapus koleksi: " + err.message);
             }
-        } else if (confirmText !== null) {
-            alert("Penghapusan dibatalkan.");
-        }
-    };
-    
-    const handleDeleteCategory = async (categoryToDelete) => {
-        const confirmText = window.prompt(`Anda akan menghapus kategori "${categoryToDelete.name}".\n\nUntuk konfirmasi, ketik 'HAPUS' di bawah ini.`);
-        if(confirmText === "HAPUS"){
-            try {
-                const { error } = await supabase.from('web_categories').delete().eq('id', categoryToDelete.id);
-                if (error) throw error;
-                setCategories(prev => prev.filter(c => c.id !== categoryToDelete.id));
-                alert('Kategori berhasil dihapus.');
-            } catch(err) {
-                setError(`Gagal menghapus kategori. Mungkin masih ada sub-kategori atau koleksi di dalamnya. Error: ${err.message}`);
-            }
         }
     };
 
-    // --- Handler untuk data baru dari Modal ---
-    const handleCategoryCreated = (newCategory) => {
-        setCategories(prev => [...prev, newCategory]);
-    };
-    
     const handleCollectionCreated = (newCollection) => {
-        // Karena halaman akan navigasi, kita bisa memilih untuk tidak melakukan apa-apa,
-        // atau menambahkan ke state agar UI responsif jika pengguna kembali.
-        setCollections(prev => [...prev, newCollection]);
+        setCollections(prev => [newCollection, ...prev]);
     };
-    
+
+    const handleCollectionUpdated = (updatedCollection) => {
+        setCollections(prev => prev.map(c => c.id === updatedCollection.id ? updatedCollection : c));
+    };
+
+    // ... sisa kode return JSX tetap sama ...
     if (loading) return <div className="p-8 text-center dark:text-gray-300">Memuat...</div>;
-    if (error) return <div className="p-8 text-center text-red-500">Terjadi kesalahan: {error}</div>;
+    if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
     return (
         <div className="space-y-8 p-4 md:p-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold dark:text-white">Koleksi Web</h1>
-                <button 
-                    onClick={() => setIsModalOpen(true)}
-                    className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition-colors"
-                >
-                    + Tambah Baru
+                <button onClick={handleOpenModalForAdd} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition-colors">
+                    <PlusIcon /> Tambah Koleksi
                 </button>
             </div>
             
-            {/* FORM LAMA DIHAPUS TOTAL DARI SINI */}
-
-            {/* --- TAMPILAN UTAMA DAFTAR KOLEKSI --- */}
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Semua Koleksi Anda</h2>
-                <div className="space-y-6">
-                    {parentCategories.length > 0 ? parentCategories.map(pCat => (
-                        <div key={pCat.id} className="p-4 rounded-lg border dark:border-gray-700">
-                            <h3 className="text-xl font-bold text-purple-600 dark:text-purple-400 flex justify-between items-center">
-                                {pCat.name}
-                                <button onClick={() => handleDeleteCategory(pCat)} className="text-red-500 hover:text-red-700 opacity-50 hover:opacity-100 transition-opacity" title="Hapus Kategori Induk"><TrashIcon/></button>
-                            </h3>
-                            <div className="pl-4 mt-2 space-y-4">
-                                {(subCategoriesByParent[pCat.id] || []).length > 0 ? (subCategoriesByParent[pCat.id] || []).map(sCat => (
-                                    <div key={sCat.id}>
-                                        <h4 className="text-lg font-semibold text-gray-700 dark:text-gray-300 flex justify-between items-center">
-                                            {sCat.name}
-                                            <button onClick={() => handleDeleteCategory(sCat)} className="text-red-500 hover:text-red-700 opacity-50 hover:opacity-100 transition-opacity" title="Hapus Sub-Kategori"><TrashIcon/></button>
-                                        </h4>
-                                        <ul className="pl-4 mt-2 space-y-2 list-disc list-inside">
-                                            {(collectionsBySubCategory[sCat.id] || []).map(col => (
-                                                <li key={col.id} className="flex justify-between items-center">
-                                                    <Link to={`/web-collections/${col.id}`} className="text-blue-500 hover:underline">
-                                                        {col.title}
-                                                    </Link>
-                                                    <button onClick={() => handleDeleteCollection(col)} className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-colors" title="Hapus Koleksi"><TrashIcon /></button>
-                                                </li>
-                                            ))}
+            {collections.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {collections.map(col => (
+                        <div key={col.id} className="relative bg-white dark:bg-gray-800 shadow-lg rounded-lg group">
+                            <Link to={`/web-collections/${col.id}`} className="block p-6">
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 truncate group-hover:text-purple-600 transition-colors">
+                                    {col.title}
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-400 mt-2 h-10 line-clamp-2">
+                                    {col.description || 'Tidak ada deskripsi.'}
+                                </p>
+                            </Link>
+                            <div className="absolute top-2 right-2">
+                                <button onClick={() => setOpenMenuId(openMenuId === col.id ? null : col.id)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                                    <MoreVerticalIcon />
+                                </button>
+                                {openMenuId === col.id && (
+                                     <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border dark:border-gray-700">
+                                        <ul className="py-1">
+                                            <li>
+                                                <button onClick={() => handleOpenModalForEdit(col)} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                    <EditIcon /> Edit Detail
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button onClick={() => handleDeleteCollection(col)} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                    <TrashIcon/> Hapus
+                                                </button>
+                                            </li>
                                         </ul>
-                                        {!(collectionsBySubCategory[sCat.id] || []).length && (
-                                            <p className="pl-4 text-sm text-gray-500 italic">Belum ada koleksi di sini.</p>
-                                        )}
                                     </div>
-                                )) : <p className="text-sm text-gray-500 italic">Belum ada sub-kategori di sini.</p>}
+                                )}
                             </div>
                         </div>
-                    )) : (
-                        !loading && <p className="text-center text-gray-500 py-4">Anda belum membuat Kategori. Mulai dengan tombol '+ Tambah Baru' di atas.</p>
-                    )}
+                    ))}
                 </div>
-            </div>
+            ) : (
+                <div className="text-center py-12 px-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Anda Belum Punya Koleksi</h3>
+                    <p className="mt-2 text-gray-500">Mulai buat koleksi baru untuk menyimpan link-link penting Anda.</p>
+                </div>
+            )}
             
             <WebCollectionModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                categories={categories}
+                isOpen={modalState.mode !== 'closed'}
+                onClose={handleCloseModal}
                 user={user}
                 onCollectionCreated={handleCollectionCreated}
-                onCategoryCreated={handleCategoryCreated}
+                onCollectionUpdated={handleCollectionUpdated}
+                collectionToEdit={modalState.mode === 'edit' ? modalState.data : null}
             />
         </div>
     );
