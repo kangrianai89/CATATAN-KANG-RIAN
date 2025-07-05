@@ -147,18 +147,17 @@ function NoteCollectionDetailPage({ session }) {
         <>
             <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
                 <div className="max-w-4xl mx-auto space-y-8">
+                    {/* KARTU DETAIL FOLDER */}
                     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
                         <button onClick={() => navigate('/notes')} className="mb-4 text-sm text-blue-500 hover:underline">&larr; Kembali ke Daftar Folder</button>
                         {!isEditing ? (
-                            <>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h1 className="text-3xl font-bold dark:text-white">{parentNote.title}</h1>
-                                        <p className="mt-2 text-gray-700 dark:text-gray-300">{parentNote.description}</p>
-                                    </div>
-                                    <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm">Edit</button>
+                            <div>
+                                <h1 className="text-3xl font-bold dark:text-white">{parentNote.title}</h1>
+                                <p className="mt-2 text-gray-700 dark:text-gray-300">{parentNote.description}</p>
+                                <div className="text-right mt-4">
+                                     <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm">Edit Folder</button>
                                 </div>
-                            </>
+                            </div>
                         ) : (
                             <form onSubmit={handleUpdateParentNote} className="space-y-4">
                                 <h2 className="text-2xl font-semibold dark:text-white">Edit Detail Folder</h2>
@@ -177,29 +176,30 @@ function NoteCollectionDetailPage({ session }) {
                             </form>
                         )}
                     </div>
-                    {/* --- KARTU ITEM CATATAN --- */}
-                    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                        <h2 className="text-xl font-semibold mb-2 dark:text-white">Item Catatan</h2>
-                        <div className="space-y-4">
-                            {/* --- PERUBAHAN UTAMA DI SINI --- */}
-                            {items.map((item, index) => (
-                                <div key={item.id} className={`pt-4 ${index > 0 ? 'border-t dark:border-gray-700' : ''}`}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <button onClick={() => handleOpenEditModal(item)} className="text-left w-full mr-4">
-                                            <h3 className="text-xl font-bold dark:text-white hover:underline">{item.title}</h3>
-                                        </button>
-                                        <div className="flex gap-2 flex-shrink-0">
-                                            <button onClick={() => handleOpenEditModal(item)} className="text-blue-500 text-sm font-medium">Edit</button>
-                                            <button onClick={() => handleDeleteItem(item.id)} className="text-red-500 text-sm font-medium">Hapus</button>
-                                        </div>
+
+                    {/* DAFTAR ITEM CATATAN (TANPA KARTU) */}
+                    <div>
+                        <h2 className="text-2xl font-semibold mb-4 dark:text-white">Item Catatan</h2>
+                        <div className="space-y-6">
+                            {items.map((item) => (
+                                <div key={item.id} className="border-t dark:border-gray-700 pt-4">
+                                    <button onClick={() => handleOpenEditModal(item)} className="text-left w-full">
+                                        <h3 className="text-xl font-bold dark:text-white hover:underline">{item.title}</h3>
+                                    </button>
+                                    <div className="flex gap-2 text-sm mt-2">
+                                        <button onClick={() => handleOpenEditModal(item)} className="text-blue-500 font-medium hover:underline">Edit</button>
+                                        <span className="text-gray-400">|</span>
+                                        <button onClick={() => handleDeleteItem(item.id)} className="text-red-500 font-medium hover:underline">Hapus</button>
                                     </div>
-                                    <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: item.content }} />
+                                    <div className="prose dark:prose-invert max-w-none mt-2" dangerouslySetInnerHTML={{ __html: item.content }} />
                                 </div>
                             ))}
-                            {items.length === 0 && <p className="text-center text-gray-500 py-4">Belum ada item di folder ini.</p>}
+                            {items.length === 0 && <p className="text-center text-gray-500 py-4 border-t dark:border-gray-700">Belum ada item di folder ini.</p>}
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                    
+                    {/* FORM TAMBAH ITEM (TANPA KARTU) */}
+                    <div className="pt-8 mt-8 border-t dark:border-gray-700">
                         <h2 className="text-2xl font-semibold mb-4 dark:text-white">Tambah Item Catatan Baru</h2>
                         <form onSubmit={handleAddItem} className="space-y-4">
                             <div>
