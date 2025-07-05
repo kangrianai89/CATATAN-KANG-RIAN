@@ -5,47 +5,29 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import MenuBar from '../components/MenuBar';
 
-// --- Ikon ---
+// --- Komponen Ikon ---
 const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M15 18l-6-6 6-6"/></svg>;
+const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
 
-// --- Komponen Modal Baru untuk Tambah Catatan ---
+// --- Komponen Modal untuk Tambah Item ---
 function AddNoteItemModal({ isOpen, onClose, parentNoteId, user, onItemAdded }) {
+    // ... (Kode AddNoteItemModal tetap sama persis, tidak ada perubahan)
     const [title, setTitle] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-
     const editor = useEditor({
-        extensions: [StarterKit],
-        content: '',
-        editorProps: {
-            attributes: {
-                class: 'prose dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none',
-            },
-        },
+        extensions: [StarterKit], content: '',
+        editorProps: { attributes: { class: 'prose dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none' } }
     });
-
     useEffect(() => {
-        // Reset editor saat modal ditutup/dibuka
-        if (editor && !isOpen) {
-            editor.commands.clearContent();
-            setTitle('');
-        }
+        if (editor && !isOpen) { editor.commands.clearContent(); setTitle(''); }
     }, [isOpen, editor]);
-    
     const handleSave = async () => {
-        if (!title.trim()) {
-            alert('Judul catatan tidak boleh kosong.');
-            return;
-        }
+        if (!title.trim()) { return alert('Judul catatan tidak boleh kosong.'); }
         setIsSaving(true);
         const content = editor.getHTML();
-
         try {
-            const { data, error } = await supabase
-                .from('note_items')
-                .insert({ title, content, note_id: parentNoteId, user_id: user.id })
-                .select()
-                .single();
+            const { data, error } = await supabase.from('note_items').insert({ title, content, note_id: parentNoteId, user_id: user.id }).select().single();
             if (error) throw error;
             alert('Catatan baru berhasil disimpan!');
             onItemAdded(data);
@@ -56,40 +38,30 @@ function AddNoteItemModal({ isOpen, onClose, parentNoteId, user, onItemAdded }) 
             setIsSaving(false);
         }
     };
-    
     if (!isOpen) return null;
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div className="p-4 border-b dark:border-gray-700">
-                    <h2 className="text-xl font-bold dark:text-white">Buat Catatan Baru</h2>
-                </div>
+                <div className="p-4 border-b dark:border-gray-700"><h2 className="text-xl font-bold dark:text-white">Buat Catatan Baru</h2></div>
                 <div className="p-4 space-y-4 overflow-y-auto">
                     <div>
                         <label className="block text-sm font-medium mb-1 dark:text-gray-300">Judul Catatan</label>
-                        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        />
+                        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1 dark:text-gray-300">Konten</label>
-                        <div className="border rounded-lg dark:border-gray-600">
-                            <MenuBar editor={editor} />
-                            <EditorContent editor={editor} />
-                        </div>
+                        <div className="border rounded-lg dark:border-gray-600"><MenuBar editor={editor} /><EditorContent editor={editor} /></div>
                     </div>
                 </div>
                 <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-4">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md">Batal</button>
-                    <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400">
-                        {isSaving ? 'Menyimpan...' : 'Simpan Catatan'}
-                    </button>
+                    <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400">{isSaving ? 'Menyimpan...' : 'Simpan Catatan'}</button>
                 </div>
             </div>
         </div>
     );
 }
+
 
 // --- Komponen Halaman Utama ---
 function NoteCollectionDetailPage({ session }) {
@@ -99,7 +71,7 @@ function NoteCollectionDetailPage({ session }) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false); // State untuk modal tambah
+    const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
     const user = session?.user;
 
     useEffect(() => {
@@ -114,7 +86,7 @@ function NoteCollectionDetailPage({ session }) {
                 if (parentNoteRes.error) throw parentNoteRes.error;
                 if (itemsRes.error) throw itemsRes.error;
                 setParentNote(parentNoteRes.data);
-                setItems(itemsRes.data);
+                setItems(itemsRes.data || []);
             } catch (err) {
                 setError('Gagal memuat data: ' + err.message);
             } finally {
@@ -123,6 +95,21 @@ function NoteCollectionDetailPage({ session }) {
         }
         fetchData();
     }, [id]);
+
+    // --- FUNGSI BARU UNTUK HAPUS ITEM ---
+    const handleDeleteItem = async (itemToDelete) => {
+        if (window.prompt(`Ketik 'HAPUS' untuk menghapus catatan "${itemToDelete.title}".`) === "HAPUS") {
+            try {
+                const { error } = await supabase.from('note_items').delete().eq('id', itemToDelete.id);
+                if (error) throw error;
+                // Hapus item dari state agar UI langsung update
+                setItems(prevItems => prevItems.filter(item => item.id !== itemToDelete.id));
+                alert('Catatan berhasil dihapus.');
+            } catch (err) {
+                setError("Gagal menghapus catatan: " + err.message);
+            }
+        }
+    };
     
     if (loading) return <div className="p-6 text-center">Memuat...</div>;
     if (error) return <div className="p-6 text-red-500">{error}</div>;
@@ -151,10 +138,16 @@ function NoteCollectionDetailPage({ session }) {
                 <div className="space-y-2">
                     {items.length > 0 ? (
                         items.map(item => (
-                            <Link to={`/note/${item.id}`} key={item.id} className="block p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <h3 className="font-semibold text-lg text-purple-600 dark:text-purple-400">{item.title}</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Dibuat: {new Date(item.created_at).toLocaleDateString()}</p>
-                            </Link>
+                            // --- PERUBAHAN DI SINI: Mengubah `Link` menjadi `div` dengan `flex` ---
+                            <div key={item.id} className="flex justify-between items-center p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <Link to={`/note/${item.id}`} className="flex-grow">
+                                    <h3 className="font-semibold text-lg text-purple-600 dark:text-purple-400">{item.title}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Dibuat: {new Date(item.created_at).toLocaleDateString()}</p>
+                                </Link>
+                                <button onClick={() => handleDeleteItem(item)} className="ml-4 flex-shrink-0 p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full" title="Hapus Catatan">
+                                    <TrashIcon />
+                                </button>
+                            </div>
                         ))
                     ) : (
                         <div className="text-center text-gray-500 py-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
@@ -169,7 +162,7 @@ function NoteCollectionDetailPage({ session }) {
                 isOpen={isAddItemModalOpen}
                 onClose={() => setIsAddItemModalOpen(false)}
                 parentNoteId={id}
-                user={user}
+                user={session.user}
                 onItemAdded={(newItem) => setItems(prevItems => [newItem, ...prevItems])}
             />
         </div>

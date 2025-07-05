@@ -1,7 +1,7 @@
 // File: supabase/functions/scrape-metadata/index.ts
-// VERSI DENGAN CORS HEADERS
+// VERSI FINAL DENGAN CORS HEADERS
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
 
 // Headers untuk mengizinkan CORS
@@ -40,7 +40,7 @@ serve(async (req) => {
         }
     });
     if (!response.ok) throw new Error(`Failed to fetch URL: ${response.statusText}`);
-
+    
     const html = await response.text();
     const doc = new DOMParser().parseFromString(html, "text/html");
     if (!doc) throw new Error("Could not parse HTML document.");
