@@ -125,9 +125,21 @@ function EmailManagerPage() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold mb-8 dark:text-white">Manajer Email</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold dark:text-white">Manajer Email</h1>
+            <p className="text-gray-600 dark:text-gray-400">Kelola semua akun email Anda.</p>
+          </div>
+           {!showAddForm && (
+            <button 
+                onClick={() => setShowAddForm(true)} 
+                className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition-colors flex-shrink-0"
+            >
+                + Tambah Email Baru
+            </button>
+          )}
+      </div>
 
-      {/* Tampilkan form hanya jika showAddForm bernilai true */}
       {showAddForm && (
         <div className="mb-8 p-4 border rounded-lg bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
           <form onSubmit={handleAddEmail} className="space-y-4">
@@ -159,12 +171,6 @@ function EmailManagerPage() {
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold dark:text-white">Daftar Email Tersimpan</h2>
-          {/* Tombol untuk menampilkan form */}
-          {!showAddForm && (
-            <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition-colors">
-                + Tambah Email Baru
-            </button>
-          )}
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600">
             <option value="Semua">Filter: Semua</option>
             <option value="Biasa">Biasa</option>
