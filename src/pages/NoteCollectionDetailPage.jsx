@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import useEditModalStore from '../stores/editModalStore.js';
-import useFolderEditModalStore from '../stores/folderEditModalStore.js'; // <-- Impor baru
+import useFolderEditModalStore from '../stores/folderEditModalStore.js';
 import FolderManagementModal from '../components/FolderManagementModal';
 import QuickAddItemModal from '../components/QuickAddItemModal';
 
@@ -16,7 +16,6 @@ const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height
 
 
 // --- Komponen Kartu Item yang Disederhanakan ---
-// Menambahkan prop onEdit
 const ItemCard = ({ item, onDelete, onEdit }) => {
     const destination = item.type === 'folder' ? `/note-collection/${item.id}` : `/note/${item.id}`;
     const Icon = item.type === 'folder' ? FolderIcon : FileIcon;
@@ -28,11 +27,12 @@ const ItemCard = ({ item, onDelete, onEdit }) => {
     };
 
     return (
-        <div className="flex justify-between items-center p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        // PERUBAHAN: Menghilangkan style kartu (background, shadow, rounded) dan menggantinya dengan garis bawah
+        <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
             <Link to={destination} className="flex-grow min-w-0 flex items-center gap-3">
                 <Icon />
                 <div className="min-w-0">
-                    <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 truncate">{item.title}</h3>
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 truncate">{item.title}</h3>
                     {item.type === 'folder' ? (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             {item.item_count} {item.item_count === 1 ? 'item' : 'items'}
@@ -45,7 +45,6 @@ const ItemCard = ({ item, onDelete, onEdit }) => {
                 </div>
             </Link>
             <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                {/* Tombol Edit hanya muncul untuk folder */}
                 {item.type === 'folder' && onEdit && (
                     <button onClick={() => onEdit(item)} className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" title="Ganti Nama">
                         <EditIcon />
@@ -72,7 +71,6 @@ function NoteCollectionDetailPage({ session }) {
     const user = session?.user;
 
     const isEditModalOpen = useEditModalStore((state) => state.isOpen);
-    // Mengambil aksi openModal dari store folder
     const openFolderEditModal = useFolderEditModalStore((state) => state.openModal);
 
     useEffect(() => {
@@ -158,29 +156,32 @@ function NoteCollectionDetailPage({ session }) {
                     </div>
                 </div>
 
-                {subFolders.length > 0 && (
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-semibold mb-4 dark:text-white">Sub-folder</h2>
-                        <div className="space-y-3">
-                            {subFolders.map(item => (
-                                <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} onEdit={openFolderEditModal} />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                <div>
-                    <h2 className="text-2xl font-semibold mb-4 dark:text-white">Catatan</h2>
-                    <div className="space-y-3">
-                        {notes.length > 0 ? (
-                            notes.map(item => (
-                                <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} />
-                            ))
-                        ) : (
-                            <div className="text-center text-gray-500 py-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                <p>Folder ini belum memiliki catatan.</p>
+                {/* PERUBAHAN: Mengelompokkan daftar item dalam satu div dengan background */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                    {subFolders.length > 0 && (
+                        <div className="mb-4">
+                            <h2 className="text-xl font-semibold mb-2 p-3 border-b dark:border-gray-700 dark:text-white">Sub-folder</h2>
+                            <div className="space-y-0">
+                                {subFolders.map(item => (
+                                    <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} onEdit={openFolderEditModal} />
+                                ))}
                             </div>
-                        )}
+                        </div>
+                    )}
+
+                    <div>
+                        <h2 className="text-xl font-semibold mb-2 p-3 border-b dark:border-gray-700 dark:text-white">Catatan</h2>
+                        <div className="space-y-0">
+                            {notes.length > 0 ? (
+                                notes.map(item => (
+                                    <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} />
+                                ))
+                            ) : (
+                                <div className="text-center text-gray-500 p-6">
+                                    <p>Folder ini belum memiliki catatan.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
