@@ -8,14 +8,15 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
     const [title, setTitle] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    // Kunci unik untuk draf di sessionStorage, berdasarkan folder induk
+    // Kunci unik untuk draf di localStorage, berdasarkan folder induk
     const draftKey = `new-note-draft-${parentNoteId || 'root'}`;
 
     // --- Fungsi untuk menyimpan draf ---
     const saveDraft = useCallback((currentTitle, editorInstance) => {
         if (!editorInstance) return;
         const draftData = { title: currentTitle, content: editorInstance.getHTML() };
-        sessionStorage.setItem(draftKey, JSON.stringify(draftData));
+        // PERUBAHAN: Menggunakan localStorage untuk penyimpanan yang lebih permanen
+        localStorage.setItem(draftKey, JSON.stringify(draftData));
     }, [draftKey]);
 
     const editor = useEditor({
@@ -35,7 +36,8 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
     // --- Efek untuk memuat atau membersihkan draf saat modal dibuka/ditutup ---
     useEffect(() => {
         if (isOpen && editor) {
-            const savedDraft = sessionStorage.getItem(draftKey);
+            // PERUBAHAN: Mengambil draf dari localStorage
+            const savedDraft = localStorage.getItem(draftKey);
             if (savedDraft) {
                 console.log('📝 Draf ditemukan, memuat draf baru...');
                 const draft = JSON.parse(savedDraft);
@@ -58,7 +60,8 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
 
     // --- Fungsi untuk membersihkan draf dan menutup modal ---
     const handleClose = () => {
-        sessionStorage.removeItem(draftKey);
+        // PERUBAHAN: Menghapus draf dari localStorage
+        localStorage.removeItem(draftKey);
         onClose();
     };
 
@@ -83,7 +86,8 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
             if (error) throw error;
 
             alert('Catatan baru berhasil dibuat!');
-            sessionStorage.removeItem(draftKey); // Hapus draf setelah berhasil disimpan
+            // PERUBAHAN: Menghapus draf dari localStorage setelah berhasil disimpan
+            localStorage.removeItem(draftKey); 
             onItemAdded(data);
             onClose(); // Tutup modal asli
 
