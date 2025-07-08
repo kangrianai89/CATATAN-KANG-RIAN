@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { supabase } from '../supabaseClient';
@@ -8,6 +8,16 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
     const [title, setTitle] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
+    // Kunci unik untuk draf di sessionStorage, berdasarkan folder induk
+    const draftKey = `new-note-draft-${parentNoteId || 'root'}`;
+
+    // --- Fungsi untuk menyimpan draf ---
+    const saveDraft = useCallback((currentTitle, editorInstance) => {
+        if (!editorInstance) return;
+        const draftData = { title: currentTitle, content: editorInstance.getHTML() };
+        sessionStorage.setItem(draftKey, JSON.stringify(draftData));
+    }, [draftKey]);
+
     const editor = useEditor({
         extensions: [StarterKit],
         content: '',
@@ -16,14 +26,41 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
                 class: 'prose dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none',
             },
         },
+        // Setiap kali konten editor berubah, simpan draf
+        onUpdate: ({ editor: editorInstance }) => {
+            saveDraft(title, editorInstance);
+        },
     });
 
+    // --- Efek untuk memuat atau membersihkan draf saat modal dibuka/ditutup ---
     useEffect(() => {
-        if (!isOpen) {
-            setTitle('');
-            editor?.commands.clearContent();
+        if (isOpen && editor) {
+            const savedDraft = sessionStorage.getItem(draftKey);
+            if (savedDraft) {
+                console.log('📝 Draf ditemukan, memuat draf baru...');
+                const draft = JSON.parse(savedDraft);
+                setTitle(draft.title);
+                editor.commands.setContent(draft.content, false);
+            } else {
+                // Jika tidak ada draf, pastikan form bersih
+                setTitle('');
+                editor.commands.clearContent();
+            }
         }
-    }, [isOpen, editor]);
+    }, [isOpen, editor, draftKey]);
+    
+    // --- Handler untuk input judul, sekaligus menyimpan draf ---
+    const handleTitleChange = (e) => {
+        const newTitle = e.target.value;
+        setTitle(newTitle);
+        saveDraft(newTitle, editor);
+    };
+
+    // --- Fungsi untuk membersihkan draf dan menutup modal ---
+    const handleClose = () => {
+        sessionStorage.removeItem(draftKey);
+        onClose();
+    };
 
     const handleSave = async () => {
         if (!title.trim()) {
@@ -43,17 +80,12 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
 
         try {
             const { data, error } = await supabase.from('workspace_items').insert(dataToSave).select().single();
-
             if (error) throw error;
 
-            // --- LANGKAH DEBUGGING BARU ---
-            // Kita akan melihat nilai dari kolom 'content' secara spesifik.
-            console.log("Nilai KONTEN yang dikembalikan oleh Supabase:", data.content);
-            // -----------------------------
-
             alert('Catatan baru berhasil dibuat!');
+            sessionStorage.removeItem(draftKey); // Hapus draf setelah berhasil disimpan
             onItemAdded(data);
-            onClose();
+            onClose(); // Tutup modal asli
 
         } catch (err) {
             alert('Gagal membuat catatan: ' + err.message);
@@ -76,7 +108,7 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
                         <input
                             type="text"
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={handleTitleChange} // Menggunakan handler baru
                             className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             required
                             autoFocus
@@ -91,7 +123,7 @@ function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded })
                     </div>
                 </div>
                 <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-4">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-black dark:text-white rounded-md">Batal</button>
+                    <button onClick={handleClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-black dark:text-white rounded-md">Batal</button>
                     <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-purple-600 text-white rounded-md disabled:bg-gray-400">
                         {isSaving ? 'Menyimpan...' : 'Simpan Catatan'}
                     </button>
