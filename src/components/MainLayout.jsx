@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { Outlet } from 'react-router-dom';
 
-// --- Impor Baru ---
-import NoteItemEditModal from './NoteItemEditModal';
+// --- Impor Modal ---
+import NoteItemEditModal from './NoteItemEditModal.jsx';
+// Path yang benar adalah menuju ke folder 'stores' untuk mengambil komponennya
+import FolderEditModal from '../stores/FolderEditModal.jsx'; 
+// MainLayout TIDAK PERLU mengimpor store-nya, hanya komponennya saja.
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -30,12 +33,12 @@ function MainLayout({ session }) {
       <Sidebar isOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} session={session} />
 
       <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
-        {/* --- PERBAIKAN: Cukup gunakan <Outlet />. React Router akan menangani sisanya. --- */}
         <Outlet />
       </main>
       
-      {/* Modal edit global yang state-nya tidak akan pernah ter-reset */}
+      {/* --- Global Modals --- */}
       <NoteItemEditModal />
+      <FolderEditModal />
       
     </div>
   );

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import useEditModalStore from '../stores/editModalStore.js';
+import useFolderEditModalStore from '../stores/folderEditModalStore.js'; // <-- Impor baru
 import FolderManagementModal from '../components/FolderManagementModal';
 import QuickAddItemModal from '../components/QuickAddItemModal';
 
@@ -11,16 +12,17 @@ const FileIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height
 const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M15 18l-6-6 6-6"/></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+
 
 // --- Komponen Kartu Item yang Disederhanakan ---
-const ItemCard = ({ item, onDelete }) => {
+// Menambahkan prop onEdit
+const ItemCard = ({ item, onDelete, onEdit }) => {
     const destination = item.type === 'folder' ? `/note-collection/${item.id}` : `/note/${item.id}`;
     const Icon = item.type === 'folder' ? FolderIcon : FileIcon;
 
-    // Fungsi untuk membersihkan HTML dari teks dan memotongnya
     const createSnippet = (htmlContent) => {
         if (!htmlContent) return "Tidak ada deskripsi...";
-        // Hapus tag HTML, lalu ambil 100 karakter pertama
         const plainText = htmlContent.replace(/<[^>]*>?/gm, '');
         return plainText.substring(0, 100) + (plainText.length > 100 ? '...' : '');
     };
@@ -31,7 +33,6 @@ const ItemCard = ({ item, onDelete }) => {
                 <Icon />
                 <div className="min-w-0">
                     <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 truncate">{item.title}</h3>
-                    {/* --- PERBAIKAN UTAMA: Menampilkan deskripsi untuk catatan --- */}
                     {item.type === 'folder' ? (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             {item.item_count} {item.item_count === 1 ? 'item' : 'items'}
@@ -44,6 +45,12 @@ const ItemCard = ({ item, onDelete }) => {
                 </div>
             </Link>
             <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                {/* Tombol Edit hanya muncul untuk folder */}
+                {item.type === 'folder' && onEdit && (
+                    <button onClick={() => onEdit(item)} className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" title="Ganti Nama">
+                        <EditIcon />
+                    </button>
+                )}
                 <button onClick={() => onDelete(item)} className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" title="Hapus">
                     <TrashIcon />
                 </button>
@@ -55,7 +62,6 @@ const ItemCard = ({ item, onDelete }) => {
 // --- Komponen Halaman Detail Folder ---
 function NoteCollectionDetailPage({ session }) {
     const { id } = useParams();
-    const navigate = useNavigate();
     const [currentItem, setCurrentItem] = useState(null);
     const [childItems, setChildItems] = useState([]);
     const [allFolders, setAllFolders] = useState([]);
@@ -66,6 +72,8 @@ function NoteCollectionDetailPage({ session }) {
     const user = session?.user;
 
     const isEditModalOpen = useEditModalStore((state) => state.isOpen);
+    // Mengambil aksi openModal dari store folder
+    const openFolderEditModal = useFolderEditModalStore((state) => state.openModal);
 
     useEffect(() => {
         if (isEditModalOpen) return;
@@ -76,9 +84,6 @@ function NoteCollectionDetailPage({ session }) {
             setError(null);
             
             try {
-                // --- PERBAIKAN: Memastikan RPC mengambil kolom 'content' untuk catatan ---
-                // Kita akan memanggil RPC yang sama, tetapi kita harus memastikan RPC itu sendiri
-                // sudah mengembalikan kolom 'content'. Dari masalahnya, sepertinya sudah.
                 const [currentRes, childrenRes, foldersRes] = await Promise.all([
                     supabase.from('workspace_items').select('*').eq('id', id).single(),
                     supabase.rpc('get_folder_contents_with_count', { p_parent_id: id }),
@@ -106,8 +111,7 @@ function NoteCollectionDetailPage({ session }) {
         fetchData();
     }, [id, user, isEditModalOpen]);
 
-    const handleItemCreated = (newItem) => {
-        // Refresh halaman untuk melihat item baru dengan data lengkap
+    const handleItemCreated = () => {
         window.location.reload();
     };
 
@@ -159,7 +163,7 @@ function NoteCollectionDetailPage({ session }) {
                         <h2 className="text-2xl font-semibold mb-4 dark:text-white">Sub-folder</h2>
                         <div className="space-y-3">
                             {subFolders.map(item => (
-                                <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} />
+                                <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} onEdit={openFolderEditModal} />
                             ))}
                         </div>
                     </div>
