@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import DOMPurify from 'dompurify';
 import useEditModalStore from '../stores/editModalStore.js';
@@ -11,7 +11,6 @@ const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height
 
 function NoteViewPage({ session }) {
     const { id } = useParams();
-    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [item, setItem] = useState(null);
     const [error, setError] = useState(null);
@@ -74,39 +73,37 @@ function NoteViewPage({ session }) {
     if (error) return <div className="p-8 text-red-500 text-center">{error}</div>;
     if (!item) return <div className="p-8 dark:text-gray-400 text-center">Catatan tidak ditemukan atau gagal dimuat.</div>;
 
-    // --- LANGKAH DEBUGGING BARU ---
-    // Kita akan melihat nilai 'content' tepat sebelum komponen di-render.
-    console.log("Nilai KONTEN sesaat sebelum render:", item.content);
-    // -----------------------------
-
     return (
         <div className="max-w-4xl mx-auto p-4 md:p-6">
+            {/* --- Breadcrumb / Tombol Kembali --- */}
             {parentFolder ? (
                 <Link 
                     to={`/note-collection/${parentFolder.id}`} 
-                    className="mb-6 inline-flex items-center gap-2 text-sm text-blue-500 hover:underline"
+                    className="mb-8 inline-flex items-center gap-2 text-sm text-blue-500 hover:underline"
                 >
                     <BackIcon /> Kembali ke folder "{parentFolder.title}"
                 </Link>
             ) : (
-                 <Link 
+                <Link 
                     to="/notes"
-                    className="mb-6 inline-flex items-center gap-2 text-sm text-blue-500 hover:underline"
+                    className="mb-8 inline-flex items-center gap-2 text-sm text-blue-500 hover:underline"
                 >
                     <BackIcon /> Kembali ke Ruang Kerja
                 </Link>
             )}
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 md:p-8">
-                <div className="flex justify-between items-start gap-4 mb-4">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-900 dark:text-white break-words">
-                            {item.title}
-                        </h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                            Dibuat: {new Date(item.created_at).toLocaleString()}
-                        </p>
-                    </div>
+            {/* PERUBAHAN UTAMA: Menghilangkan div kartu pembungkus */}
+            
+            {/* --- Header Catatan --- */}
+            <div className="mb-6">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white break-words">
+                    {item.title}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Dibuat: {new Date(item.created_at).toLocaleString()}
+                </p>
+                {/* --- Tombol Edit dipindahkan ke bawah --- */}
+                <div className="mt-4 flex justify-end">
                     <button 
                         onClick={() => openEditModal(item.id)}
                         className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
@@ -114,15 +111,15 @@ function NoteViewPage({ session }) {
                         <EditIcon /> Edit
                     </button>
                 </div>
-                
-                <hr className="my-6 dark:border-gray-700" />
-                
-                {/* --- PERBAIKAN: Mengaktifkan kembali DOMPurify --- */}
-                <div 
-                    className="prose dark:prose-invert max-w-none break-words"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content || '<p>Belum ada konten.</p>') }}
-                />
             </div>
+            
+            <hr className="my-6 dark:border-gray-600" />
+            
+            {/* --- Konten Catatan --- */}
+            <div 
+                className="prose dark:prose-invert max-w-none break-words"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content || '<p class="text-gray-500">Belum ada konten.</p>') }}
+            />
         </div>
     );
 }
