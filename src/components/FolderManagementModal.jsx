@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 
-function FolderManagementModal({ isOpen, onClose, user, onFolderCreated }) {
+function FolderManagementModal({ isOpen, onClose, user, onFolderCreated, parentId = null }) {
     const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     const handleCreateFolder = async (e) => {
         e.preventDefault();
@@ -11,28 +11,31 @@ function FolderManagementModal({ isOpen, onClose, user, onFolderCreated }) {
             alert("Judul Folder harus diisi!");
             return;
         }
+        setIsSaving(true);
         try {
-            const { data, error } = await supabase.from('notes').insert({
+            // PERBAIKAN: Menyimpan ke tabel 'workspace_items' dengan struktur baru
+            const { data, error } = await supabase.from('workspace_items').insert({
                 title: title,
-                description: description,
                 user_id: user.id,
-                pinned: false
+                type: 'folder', // Secara eksplisit mengatur tipe sebagai folder
+                parent_id: parentId // Menggunakan parentId dari props, atau null jika tidak ada
             }).select().single();
 
             if (error) throw error;
 
             onFolderCreated(data); // Kirim data folder baru ke parent
             alert(`Folder "${data.title}" berhasil dibuat!`);
-            onClose(); // Tutup modal
+            handleClose(); // Panggil handleClose untuk reset dan tutup
         } catch (error) {
             alert("Gagal membuat folder: " + error.message);
+        } finally {
+            setIsSaving(false);
         }
     };
     
     // Reset state saat modal ditutup
     const handleClose = () => {
         setTitle('');
-        setDescription('');
         onClose();
     };
 
@@ -47,14 +50,24 @@ function FolderManagementModal({ isOpen, onClose, user, onFolderCreated }) {
                 </div>
                 <form onSubmit={handleCreateFolder} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Judul Folder</label>
-                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required />
+                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Nama Folder</label>
+                        <input 
+                            type="text" 
+                            value={title} 
+                            onChange={e => setTitle(e.target.value)} 
+                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                            required 
+                            autoFocus
+                        />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Deskripsi (Opsional)</label>
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} rows="3" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></textarea>
-                    </div>
-                    <button type="submit" className="w-full px-4 py-3 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700">Simpan Folder</button>
+                    {/* PERBAIKAN: Menghapus input deskripsi */}
+                    <button 
+                        type="submit" 
+                        disabled={isSaving}
+                        className="w-full px-4 py-3 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 disabled:bg-gray-400"
+                    >
+                        {isSaving ? 'Menyimpan...' : 'Simpan Folder'}
+                    </button>
                 </form>
             </div>
         </div>

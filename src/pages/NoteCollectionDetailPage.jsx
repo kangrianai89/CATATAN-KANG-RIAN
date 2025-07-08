@@ -1,171 +1,203 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import MenuBar from '../components/MenuBar';
+import useEditModalStore from '../stores/editModalStore.js';
+import FolderManagementModal from '../components/FolderManagementModal';
+import QuickAddItemModal from '../components/QuickAddItemModal';
 
-// --- Komponen Ikon ---
+// --- Ikon ---
+const FolderIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>;
+const FileIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>;
 const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M15 18l-6-6 6-6"/></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
 
-// --- Komponen Modal untuk Tambah Item ---
-function AddNoteItemModal({ isOpen, onClose, parentNoteId, user, onItemAdded }) {
-    // ... (Kode AddNoteItemModal tetap sama persis, tidak ada perubahan)
-    const [title, setTitle] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-    const editor = useEditor({
-        extensions: [StarterKit], content: '',
-        editorProps: { attributes: { class: 'prose dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none' } }
-    });
-    useEffect(() => {
-        if (editor && !isOpen) { editor.commands.clearContent(); setTitle(''); }
-    }, [isOpen, editor]);
-    const handleSave = async () => {
-        if (!title.trim()) { return alert('Judul catatan tidak boleh kosong.'); }
-        setIsSaving(true);
-        const content = editor.getHTML();
-        try {
-            const { data, error } = await supabase.from('note_items').insert({ title, content, note_id: parentNoteId, user_id: user.id }).select().single();
-            if (error) throw error;
-            alert('Catatan baru berhasil disimpan!');
-            onItemAdded(data);
-            onClose();
-        } catch (err) {
-            alert('Gagal menyimpan catatan: ' + err.message);
-        } finally {
-            setIsSaving(false);
-        }
+// --- Komponen Kartu Item yang Disederhanakan ---
+const ItemCard = ({ item, onDelete }) => {
+    const destination = item.type === 'folder' ? `/note-collection/${item.id}` : `/note/${item.id}`;
+    const Icon = item.type === 'folder' ? FolderIcon : FileIcon;
+
+    // Fungsi untuk membersihkan HTML dari teks dan memotongnya
+    const createSnippet = (htmlContent) => {
+        if (!htmlContent) return "Tidak ada deskripsi...";
+        // Hapus tag HTML, lalu ambil 100 karakter pertama
+        const plainText = htmlContent.replace(/<[^>]*>?/gm, '');
+        return plainText.substring(0, 100) + (plainText.length > 100 ? '...' : '');
     };
-    if (!isOpen) return null;
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div className="p-4 border-b dark:border-gray-700"><h2 className="text-xl font-bold dark:text-white">Buat Catatan Baru</h2></div>
-                <div className="p-4 space-y-4 overflow-y-auto">
-                    <div>
-                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Judul Catatan</label>
-                        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Konten</label>
-                        <div className="border rounded-lg dark:border-gray-600"><MenuBar editor={editor} /><EditorContent editor={editor} /></div>
-                    </div>
+        <div className="flex justify-between items-center p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <Link to={destination} className="flex-grow min-w-0 flex items-center gap-3">
+                <Icon />
+                <div className="min-w-0">
+                    <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 truncate">{item.title}</h3>
+                    {/* --- PERBAIKAN UTAMA: Menampilkan deskripsi untuk catatan --- */}
+                    {item.type === 'folder' ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {item.item_count} {item.item_count === 1 ? 'item' : 'items'}
+                        </p>
+                    ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                           {createSnippet(item.content)}
+                        </p>
+                    )}
                 </div>
-                <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-4">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md">Batal</button>
-                    <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400">{isSaving ? 'Menyimpan...' : 'Simpan Catatan'}</button>
-                </div>
+            </Link>
+            <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                <button onClick={() => onDelete(item)} className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" title="Hapus">
+                    <TrashIcon />
+                </button>
             </div>
         </div>
     );
-}
+};
 
-
-// --- Komponen Halaman Utama ---
+// --- Komponen Halaman Detail Folder ---
 function NoteCollectionDetailPage({ session }) {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [parentNote, setParentNote] = useState(null);
-    const [items, setItems] = useState([]);
+    const [currentItem, setCurrentItem] = useState(null);
+    const [childItems, setChildItems] = useState([]);
+    const [allFolders, setAllFolders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+    const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
     const user = session?.user;
 
+    const isEditModalOpen = useEditModalStore((state) => state.isOpen);
+
     useEffect(() => {
+        if (isEditModalOpen) return;
+
         async function fetchData() {
-            if (!id) return;
+            if (!id || !user) return;
             setLoading(true);
+            setError(null);
+            
             try {
-                const [parentNoteRes, itemsRes] = await Promise.all([
-                    supabase.from('notes').select('id, title, description').eq('id', id).single(),
-                    supabase.from('note_items').select('id, title, created_at').eq('note_id', id).order('created_at', { ascending: false })
+                // --- PERBAIKAN: Memastikan RPC mengambil kolom 'content' untuk catatan ---
+                // Kita akan memanggil RPC yang sama, tetapi kita harus memastikan RPC itu sendiri
+                // sudah mengembalikan kolom 'content'. Dari masalahnya, sepertinya sudah.
+                const [currentRes, childrenRes, foldersRes] = await Promise.all([
+                    supabase.from('workspace_items').select('*').eq('id', id).single(),
+                    supabase.rpc('get_folder_contents_with_count', { p_parent_id: id }),
+                    supabase.from('workspace_items').select('id, title').eq('type', 'folder')
                 ]);
-                if (parentNoteRes.error) throw parentNoteRes.error;
-                if (itemsRes.error) throw itemsRes.error;
-                setParentNote(parentNoteRes.data);
-                setItems(itemsRes.data || []);
+
+                if (currentRes.error) throw currentRes.error;
+                if (childrenRes.error) throw childrenRes.error;
+                if (foldersRes.error) throw foldersRes.error;
+
+                setCurrentItem(currentRes.data);
+                setChildItems(childrenRes.data || []);
+                setAllFolders(foldersRes.data || []);
+
             } catch (err) {
-                setError('Gagal memuat data: ' + err.message);
+                console.error(err);
+                setError('Gagal memuat data. Folder mungkin tidak ada atau Anda tidak memiliki akses.');
+                setCurrentItem(null);
+                setChildItems([]);
             } finally {
                 setLoading(false);
             }
         }
-        fetchData();
-    }, [id]);
 
-    // --- FUNGSI BARU UNTUK HAPUS ITEM ---
+        fetchData();
+    }, [id, user, isEditModalOpen]);
+
+    const handleItemCreated = (newItem) => {
+        // Refresh halaman untuk melihat item baru dengan data lengkap
+        window.location.reload();
+    };
+
     const handleDeleteItem = async (itemToDelete) => {
-        if (window.prompt(`Ketik 'HAPUS' untuk menghapus catatan "${itemToDelete.title}".`) === "HAPUS") {
+        const itemType = itemToDelete.type === 'folder' ? 'Folder' : 'Catatan';
+        if (window.prompt(`Ketik 'HAPUS' untuk menghapus ${itemType} "${itemToDelete.title}". Ini akan menghapus semua isinya juga.`) === "HAPUS") {
             try {
-                const { error } = await supabase.from('note_items').delete().eq('id', itemToDelete.id);
+                const { error } = await supabase.from('workspace_items').delete().eq('id', itemToDelete.id);
                 if (error) throw error;
-                // Hapus item dari state agar UI langsung update
-                setItems(prevItems => prevItems.filter(item => item.id !== itemToDelete.id));
-                alert('Catatan berhasil dihapus.');
+                setChildItems(prev => prev.filter(item => item.id !== itemToDelete.id));
             } catch (err) {
-                setError("Gagal menghapus catatan: " + err.message);
+                alert(`Gagal menghapus ${itemType}: ` + err.message);
             }
         }
     };
-    
-    if (loading) return <div className="p-6 text-center">Memuat...</div>;
-    if (error) return <div className="p-6 text-red-500">{error}</div>;
-    if (!parentNote) return <div className="p-6 text-center">Folder tidak ditemukan.</div>;
+
+    if (loading) return <div className="p-6 text-center dark:text-gray-300">Memuat isi folder...</div>;
+    if (error) return <div className="p-6 text-center text-red-500">{error}</div>;
+    if (!currentItem) return <div className="p-6 text-center">Folder tidak ditemukan.</div>;
+
+    const subFolders = childItems.filter(item => item.type === 'folder');
+    const notes = childItems.filter(item => item.type === 'note');
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-6">
-            <button onClick={() => navigate('/notes')} className="mb-6 text-sm text-blue-500 hover:underline flex items-center gap-2">
-                <BackIcon /> Kembali ke Daftar Folder
-            </button>
+        <>
+            <div className="max-w-4xl mx-auto p-4 md:p-6">
+                <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <Link to="/notes" className="hover:underline">Ruang Kerja</Link>
+                    <span>/</span>
+                    <span className="font-semibold text-gray-700 dark:text-gray-200">{currentItem.title}</span>
+                </nav>
 
-            <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-                 <div className="flex justify-between items-center gap-4">
-                    <div>
-                        <h1 className="text-4xl font-bold dark:text-white">{parentNote.title}</h1>
-                        {parentNote.description && <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">{parentNote.description}</p>}
-                    </div>
-                    <button onClick={() => setIsAddItemModalOpen(true)} className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700">
-                        <PlusIcon/> Tambah Catatan
-                    </button>
-                </div>
-            </div>
-
-            <div>
-                <h2 className="text-2xl font-semibold mb-4 dark:text-white">Daftar Catatan</h2>
-                <div className="space-y-2">
-                    {items.length > 0 ? (
-                        items.map(item => (
-                            // --- PERUBAHAN DI SINI: Mengubah `Link` menjadi `div` dengan `flex` ---
-                            <div key={item.id} className="flex justify-between items-center p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <Link to={`/note/${item.id}`} className="flex-grow">
-                                    <h3 className="font-semibold text-lg text-purple-600 dark:text-purple-400">{item.title}</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Dibuat: {new Date(item.created_at).toLocaleDateString()}</p>
-                                </Link>
-                                <button onClick={() => handleDeleteItem(item)} className="ml-4 flex-shrink-0 p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full" title="Hapus Catatan">
-                                    <TrashIcon />
-                                </button>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-center text-gray-500 py-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                            <p>Belum ada catatan di dalam folder ini.</p>
-                            <button onClick={() => setIsAddItemModalOpen(true)} className="mt-2 text-sm text-blue-500 hover:underline">Buat catatan pertama Anda</button>
+                <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <div className="flex flex-wrap justify-between items-center gap-4">
+                        <h1 className="text-4xl font-bold dark:text-white">{currentItem.title}</h1>
+                        <div className="flex gap-2">
+                            <button onClick={() => setIsFolderModalOpen(true)} className="flex-shrink-0 flex items-center gap-2 px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600">
+                                <FolderIcon /> Buat Folder
+                            </button>
+                            <button onClick={() => setIsNoteModalOpen(true)} className="flex-shrink-0 flex items-center gap-2 px-3 py-2 text-sm bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700">
+                                <PlusIcon/> Buat Catatan
+                            </button>
                         </div>
-                    )}
+                    </div>
+                </div>
+
+                {subFolders.length > 0 && (
+                    <div className="mb-8">
+                        <h2 className="text-2xl font-semibold mb-4 dark:text-white">Sub-folder</h2>
+                        <div className="space-y-3">
+                            {subFolders.map(item => (
+                                <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div>
+                    <h2 className="text-2xl font-semibold mb-4 dark:text-white">Catatan</h2>
+                    <div className="space-y-3">
+                        {notes.length > 0 ? (
+                            notes.map(item => (
+                                <ItemCard key={item.id} item={item} onDelete={handleDeleteItem} />
+                            ))
+                        ) : (
+                            <div className="text-center text-gray-500 py-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                                <p>Folder ini belum memiliki catatan.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <AddNoteItemModal
-                isOpen={isAddItemModalOpen}
-                onClose={() => setIsAddItemModalOpen(false)}
-                parentNoteId={id}
-                user={session.user}
-                onItemAdded={(newItem) => setItems(prevItems => [newItem, ...prevItems])}
+            <FolderManagementModal
+                isOpen={isFolderModalOpen}
+                onClose={() => setIsFolderModalOpen(false)}
+                onFolderCreated={handleItemCreated}
+                user={user}
+                parentId={id}
             />
-        </div>
+
+            <QuickAddItemModal
+                isOpen={isNoteModalOpen}
+                onClose={() => setIsNoteModalOpen(false)}
+                onItemAdded={handleItemCreated}
+                user={user}
+                parentNoteId={id}
+                folders={allFolders} 
+            />
+        </>
     );
 }
 

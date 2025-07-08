@@ -1,90 +1,100 @@
-import { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import MenuBar from './MenuBar'; // Menggunakan MenuBar yang sudah ada
+import { supabase } from '../supabaseClient';
+import MenuBar from './MenuBar';
 
-function QuickAddItemModal({ isOpen, onClose, folders, user, onItemAdded }) {
-    const [newItemTitle, setNewItemTitle] = useState('');
-    const [selectedFolder, setSelectedFolder] = useState('');
+function QuickAddItemModal({ isOpen, onClose, user, parentNoteId, onItemAdded }) {
+    const [title, setTitle] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     const editor = useEditor({
         extensions: [StarterKit],
         content: '',
         editorProps: {
-            attributes: { class: 'prose dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none' },
+            attributes: {
+                class: 'prose dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none',
+            },
         },
     });
 
-    const handleAddItem = async (e) => {
-        e.preventDefault();
-        const content = editor ? editor.getHTML() : '';
-        if (!newItemTitle.trim() || content === '<p></p>' || !selectedFolder) {
-            alert("Judul, Konten, dan pilihan Folder harus diisi!");
+    useEffect(() => {
+        if (!isOpen) {
+            setTitle('');
+            editor?.commands.clearContent();
+        }
+    }, [isOpen, editor]);
+
+    const handleSave = async () => {
+        if (!title.trim()) {
+            alert('Judul catatan harus diisi!');
             return;
         }
+        setIsSaving(true);
+        const content = editor.getHTML();
+
+        const dataToSave = {
+            title: title,
+            content: content,
+            user_id: user.id,
+            type: 'note',
+            parent_id: parentNoteId,
+        };
+
         try {
-            const { data, error } = await supabase.from('note_items').insert({
-                note_id: selectedFolder,
-                user_id: user.id,
-                title: newItemTitle,
-                content: content
-            }).select().single();
+            const { data, error } = await supabase.from('workspace_items').insert(dataToSave).select().single();
 
             if (error) throw error;
-            
-            setNewItemTitle('');
-            if (editor) editor.commands.clearContent();
-            setSelectedFolder('');
 
-            alert(`Item "${data.title}" berhasil ditambahkan!`);
-            onItemAdded(data); // Memberi tahu parent bahwa item baru telah ditambahkan
-            onClose(); // Tutup modal
+            // --- LANGKAH DEBUGGING BARU ---
+            // Kita akan melihat nilai dari kolom 'content' secara spesifik.
+            console.log("Nilai KONTEN yang dikembalikan oleh Supabase:", data.content);
+            // -----------------------------
+
+            alert('Catatan baru berhasil dibuat!');
+            onItemAdded(data);
+            onClose();
+
         } catch (err) {
-            alert('Gagal menambah item: ' + err.message);
+            alert('Gagal membuat catatan: ' + err.message);
+        } finally {
+            setIsSaving(false);
         }
-    };
-    
-    // Reset form saat modal ditutup
-    const handleClose = () => {
-        setNewItemTitle('');
-        if (editor) editor.commands.clearContent();
-        setSelectedFolder('');
-        onClose();
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={handleClose}>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                    <h2 className="text-xl font-bold dark:text-white">Tambah Catatan Cepat</h2>
-                    <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">&times;</button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div className="p-4 border-b dark:border-gray-700">
+                    <h2 className="text-xl font-bold dark:text-white">Buat Catatan Baru</h2>
                 </div>
-
-                <div className="p-6 overflow-y-auto">
-                    <form onSubmit={handleAddItem} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Pilih Folder Penyimpanan</label>
-                            <select value={selectedFolder} onChange={e => setSelectedFolder(e.target.value)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                                <option value="" disabled>-- Pilih Folder --</option>
-                                {folders.map(folder => (<option key={folder.id} value={folder.id}>{folder.title}</option>))}
-                            </select>
+                <div className="p-4 space-y-4 overflow-y-auto">
+                    <div>
+                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Judul Catatan</label>
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            required
+                            autoFocus
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Konten</label>
+                        <div className="border rounded-lg dark:border-gray-600">
+                            <MenuBar editor={editor} />
+                            <EditorContent editor={editor} />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Judul Catatan</label>
-                            <input type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required/>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Konten</label>
-                            <div className="border rounded-lg dark:border-gray-600">
-                               {editor && <MenuBar editor={editor} />}
-                               <EditorContent editor={editor} />
-                            </div>
-                        </div>
-                        <button type="submit" className="w-full px-4 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Simpan Catatan</button>
-                    </form>
+                    </div>
+                </div>
+                <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-4">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-black dark:text-white rounded-md">Batal</button>
+                    <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-purple-600 text-white rounded-md disabled:bg-gray-400">
+                        {isSaving ? 'Menyimpan...' : 'Simpan Catatan'}
+                    </button>
                 </div>
             </div>
         </div>
