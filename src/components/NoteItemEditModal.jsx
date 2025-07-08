@@ -1,38 +1,86 @@
 // src/components/NoteItemEditModal.jsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import MenuBar from './MenuBar';
 
-function NoteItemEditModal({ isOpen, onClose, item, onSave, folders }) { // Tambah prop 'folders'
+function NoteItemEditModal({ isOpen, onClose, item, onSave, folders }) {
     const [title, setTitle] = useState('');
-    const [selectedFolderId, setSelectedFolderId] = useState(''); // State baru untuk folder tujuan
+    const [selectedFolderId, setSelectedFolderId] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+
+    // Fungsi untuk menyimpan draf, dibuat dengan useCallback agar tidak dibuat ulang terus-menerus
+    const saveDraft = useCallback(() => {
+        if (!editor || !item) return;
+
+        const draftData = {
+            title: title,
+            content: editor.getHTML(),
+        };
+        const draftKey = `note-draft-${item.id}`;
+        
+        // Hanya simpan jika ada judul atau konten
+        if (draftData.title || draftData.content !== '<p></p>') {
+            sessionStorage.setItem(draftKey, JSON.stringify(draftData));
+            console.log('✅ Draf disimpan untuk item:', item.id);
+        }
+    }, [title, item]); // Bergantung pada 'title' dan 'item'
 
     const editor = useEditor({
         extensions: [StarterKit],
-        content: '',
+        content: '', // Konten akan diisi oleh useEffect
         editorProps: {
             attributes: {
                 class: 'prose dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none',
             },
         },
+        // Setiap kali konten editor diubah, panggil fungsi saveDraft
+        onUpdate: () => {
+            saveDraft();
+        },
     });
 
+    // EFEK 1: Hanya untuk memuat data di awal
     useEffect(() => {
         if (item && editor) {
-            setTitle(item.title);
-            setSelectedFolderId(item.note_id); // Set folder awal saat modal dibuka
-            editor.commands.setContent(item.content || '');
+            const draftKey = `note-draft-${item.id}`;
+            const savedDraft = sessionStorage.getItem(draftKey);
+
+            if (savedDraft) {
+                console.log('📝 Draf ditemukan, memuat draf untuk item:', item.id);
+                const { title: draftTitle, content: draftContent } = JSON.parse(savedDraft);
+                setTitle(draftTitle);
+                // Set konten editor tanpa memicu 'onUpdate' untuk menghindari loop
+                editor.commands.setContent(draftContent, false); 
+            } else {
+                console.log('📄 Tidak ada draf, memuat data asli untuk item:', item.id);
+                setTitle(item.title);
+                editor.commands.setContent(item.content || '', false);
+            }
+            setSelectedFolderId(item.note_id);
         }
-    }, [item, editor]);
+    }, [item, editor]); // Hanya berjalan ketika item atau editor instance siap
+
+    // EFEK 2: Menyimpan draf setiap kali judul berubah
+    useEffect(() => {
+        // Jangan simpan draf saat komponen pertama kali render sebelum editor siap
+        if (editor && editor.isFocused) {
+            saveDraft();
+        }
+    }, [title, saveDraft, editor]);
 
     const handleSave = async () => {
+        if (!editor) return;
         setIsSaving(true);
-        const content = editor.getHTML();
-        // Kirim folderId yang baru ke fungsi onSave
-        await onSave(item.id, title, content, selectedFolderId);
+        const finalContent = editor.getHTML();
+        await onSave(item.id, title, finalContent, selectedFolderId);
+
+        // Hapus draf dari sessionStorage setelah berhasil disimpan
+        const draftKey = `note-draft-${item.id}`;
+        sessionStorage.removeItem(draftKey);
+        console.log('🗑️ Draf dihapus setelah disimpan:', item.id);
+        
         setIsSaving(false);
         onClose();
     };
@@ -78,7 +126,7 @@ function NoteItemEditModal({ isOpen, onClose, item, onSave, folders }) { // Tamb
                 </div>
                 <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-4">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-black dark:text-white rounded-md">Batal</button>
-                    <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400">{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</button>
+                    <button onClick={handleSave} disabled={isSaving || !editor} className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400">{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</button>
                 </div>
             </div>
         </div>
