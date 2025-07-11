@@ -193,11 +193,16 @@ function NoteCollectionDetailPage({ session }) {
                         <h1 className="text-4xl font-bold dark:text-white">{currentItem.title}</h1>
                         <div className="flex gap-2">
                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} disabled={isUploading} />
-                            <button onClick={() => fileInputRef.current.click()} disabled={isUploading} className="flex-shrink-0 flex items-center gap-2 px-3 py-2 text-sm bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 disabled:bg-gray-400">
-                                {isUploading ? "Mengunggah..." : <><UploadIcon /> Unggah File</>}
+                            <button onClick={() => fileInputRef.current.click()} disabled={isUploading} title="Unggah File" className="p-2 bg-blue-500 text-white rounded-full shadow hover:bg-blue-600 disabled:bg-gray-400">
+                                {isUploading ? "..." : <UploadIcon />}
                             </button>
-                            <button onClick={() => setIsFolderModalOpen(true)} className="flex-shrink-0 flex items-center gap-2 px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600"><FolderIcon /> Buat Folder</button>
-                            <button onClick={() => setIsNoteModalOpen(true)} className="flex-shrink-0 flex items-center gap-2 px-3 py-2 text-sm bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700"><PlusIcon/> Buat Catatan</button>
+                            <button onClick={() => setIsFolderModalOpen(true)} title="Buat Folder" className="p-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600">
+                                <FolderIcon />
+                            </button>
+                            {/* === PERUBAHAN ADA DI BARIS INI === */}
+                            <button onClick={() => setIsNoteModalOpen(true)} title="Buat Catatan" className="p-2 bg-purple-600 text-white rounded-full shadow hover:bg-purple-700">
+                                <NoteIcon/>
+                            </button>
                         </div>
                     </div>
                 </div>
