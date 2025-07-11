@@ -1,18 +1,24 @@
-// 1. Impor plugin dengan sintaks 'import'
-import typography from '@tailwindcss/typography';
+// tailwind.config.js
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: "class",
+  darkMode: 'class', // Pastikan dark mode diatur ke 'class'
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      // === BAGIAN YANG DITAMBAHKAN/DIUBAH ===
+      fontFamily: {
+        // Daftarkan font 'Lora' agar bisa dipanggil via class 'font-lora'
+        'lora': ['"Lora"', 'serif'], 
+      }
+      // ===================================
+    },
   },
-  // 2. Gunakan variabel yang sudah diimpor (bukan 'require')
   plugins: [
-    typography,
+    // Pastikan plugin typography ada (karena kita menggunakan class 'prose')
+    require('@tailwindcss/typography'),
   ],
 }

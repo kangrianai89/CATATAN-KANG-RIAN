@@ -1,12 +1,11 @@
+// src/components/MainLayout.jsx
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { Outlet } from 'react-router-dom';
 
 // --- Impor Modal ---
 import NoteItemEditModal from './NoteItemEditModal.jsx';
-// Path yang benar adalah menuju ke folder 'stores' untuk mengambil komponennya
 import FolderEditModal from '../stores/FolderEditModal.jsx'; 
-// MainLayout TIDAK PERLU mengimpor store-nya, hanya komponennya saja.
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -32,7 +31,9 @@ function MainLayout({ session }) {
 
       <Sidebar isOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} session={session} />
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+      {/* === PERUBAHAN ADA DI BARIS INI === */}
+      {/* Latar belakang diubah menjadi putih (atau abu-abu gelap di dark mode) */}
+      <main className="flex-1 p-6 lg:p-8 min-w-0 bg-white dark:bg-gray-800">
         <Outlet />
       </main>
       
